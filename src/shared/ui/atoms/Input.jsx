@@ -9,8 +9,8 @@ export const Input = React.forwardRef(({
   label,
   error,
   helper,
-  leftIcon,
-  rightIcon,
+  leftIcon: LeftIcon,
+  rightIcon: RightIcon,
   fullWidth = false,
   size = 'md',
   ...props
@@ -21,6 +21,12 @@ export const Input = React.forwardRef(({
     lg: 'h-13 px-5 text-lg',
   };
 
+  const iconSizes = {
+    sm: 14,
+    md: 18,
+    lg: 20,
+  };
+
   return (
     <div className={cn('flex flex-col gap-1.5', fullWidth && 'w-full')}>
       {label && (
@@ -29,9 +35,9 @@ export const Input = React.forwardRef(({
         </label>
       )}
       <div className="relative">
-        {leftIcon && (
+        {LeftIcon && (
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
-            {leftIcon}
+            {typeof LeftIcon === 'function' ? <LeftIcon size={iconSizes[size]} /> : LeftIcon}
           </div>
         )}
         <input
@@ -42,15 +48,15 @@ export const Input = React.forwardRef(({
             'focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500',
             'transition-all duration-200',
             error && 'border-red-500 focus:border-red-500 focus:ring-red-500/50',
-            leftIcon && 'pl-10',
-            rightIcon && 'pr-10',
+            LeftIcon && 'pl-10',
+            RightIcon && 'pr-10',
             sizes[size]
           )}
           {...props}
         />
-        {rightIcon && (
+        {RightIcon && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
-            {rightIcon}
+            {typeof RightIcon === 'function' ? <RightIcon size={iconSizes[size]} /> : RightIcon}
           </div>
         )}
       </div>
