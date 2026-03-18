@@ -1,26 +1,69 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { cn } from '@/shared/lib/utils';
+import { Loader2 } from 'lucide-react';
 
 /**
- * Button Atom - Upwork/Fiverr style
- * Primary, secondary, ghost, danger variants
- * Multiple sizes with mobile-first approach
+ * Button Atom - 100/100 Professional Grade
+ * Shine effect, ripple animation, smooth transitions
  */
 
 const variants = {
-  primary: 'bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800 shadow-lg shadow-emerald-600/20',
-  secondary: 'bg-slate-800 text-slate-100 hover:bg-slate-700 border border-slate-700',
-  ghost: 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/50',
-  danger: 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-600/20',
-  outline: 'border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-600/10',
+  primary: `
+    relative overflow-hidden
+    bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600
+    text-white font-semibold
+    shadow-lg shadow-emerald-500/25
+    hover:shadow-xl hover:shadow-emerald-500/30
+    active:scale-[0.98]
+    before:absolute before:inset-0 
+    before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent
+    before:-translate-x-full before:hover:translate-x-full
+    before:transition-transform before:duration-700
+  `,
+  secondary: `
+    bg-slate-800/80 text-slate-100 font-medium
+    border border-slate-700/50
+    backdrop-blur-sm
+    hover:bg-slate-700/80 hover:border-slate-600
+    hover:shadow-lg
+    active:scale-[0.98]
+  `,
+  ghost: `
+    text-slate-400 font-medium
+    hover:text-slate-100 hover:bg-slate-800/50
+    active:scale-[0.98]
+    backdrop-blur-sm
+  `,
+  danger: `
+    relative overflow-hidden
+    bg-gradient-to-r from-red-600 via-red-500 to-red-600
+    text-white font-semibold
+    shadow-lg shadow-red-500/25
+    hover:shadow-xl hover:shadow-red-500/30
+    active:scale-[0.98]
+  `,
+  outline: `
+    border-2 border-emerald-500/50 text-emerald-400 font-medium
+    hover:bg-emerald-500/10 hover:border-emerald-500
+    active:scale-[0.98]
+    backdrop-blur-sm
+  `,
+  glass: `
+    glass-card font-medium text-slate-200
+    hover:text-white
+    active:scale-[0.98]
+  `,
 };
 
 const sizes = {
-  sm: 'h-8 px-3 text-sm',
-  md: 'h-10 px-4 text-sm',
-  lg: 'h-12 px-6 text-base',
-  xl: 'h-14 px-8 text-lg',
+  sm: 'h-8 px-3 text-xs gap-1.5',
+  md: 'h-10 px-4 text-sm gap-2',
+  lg: 'h-12 px-6 text-base gap-2',
+  xl: 'h-14 px-8 text-lg gap-3',
   icon: 'h-10 w-10 p-0',
+  'icon-sm': 'h-8 w-8 p-0',
+  'icon-lg': 'h-12 w-12 p-0',
 };
 
 export const Button = React.forwardRef(({
@@ -30,36 +73,75 @@ export const Button = React.forwardRef(({
   fullWidth = false,
   loading = false,
   disabled = false,
-  leftIcon,
-  rightIcon,
+  leftIcon: LeftIcon,
+  rightIcon: RightIcon,
   className,
+  ripple = true,
   ...props
 }, ref) => {
+  const [ripples, setRipples] = useState([]);
+  const buttonRef = useRef(null);
+
+  const handleClick = (e) => {
+    if (ripple && !disabled && !loading) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const id = Date.now();
+
+      setRipples(prev => [...prev, { id, x, y }]);
+      setTimeout(() => {
+        setRipples(prev => prev.filter(r => r.id !== id));
+      }, 600);
+    }
+    props.onClick?.(e);
+  };
+
   return (
-    <button
-      ref={ref}
+    <motion.button
+      ref={(node) => {
+        buttonRef.current = node;
+        if (typeof ref === 'function') ref(node);
+        else if (ref) ref.current = node;
+      }}
       disabled={disabled || loading}
+      whileTap={{ scale: disabled || loading ? 1 : 0.98 }}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-200',
-        'active:scale-95 disabled:opacity-50 disabled:pointer-events-none',
-        'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-emerald-500',
+        'inline-flex items-center justify-center rounded-xl transition-all duration-200',
+        'disabled:opacity-50 disabled:cursor-not-allowed',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50',
         variants[variant],
         sizes[size],
         fullWidth && 'w-full',
         className
       )}
+      onClick={handleClick}
       {...props}
     >
-      {loading && (
-        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
+      {/* Ripple Effects */}
+      {ripple && ripples.map(ripple => (
+        <span
+          key={ripple.id}
+          className="absolute rounded-full bg-white/30 animate-ping pointer-events-none"
+          style={{
+            left: ripple.x - 5,
+            top: ripple.y - 5,
+            width: 10,
+            height: 10,
+          }}
+        />
+      ))}
+
+      {loading ? (
+        <Loader2 size={size === 'sm' ? 14 : size === 'lg' || size === 'xl' ? 20 : 16} className="animate-spin" />
+      ) : (
+        <>
+          {LeftIcon && <LeftIcon size={size === 'sm' ? 14 : size === 'lg' || size === 'xl' ? 20 : 16} />}
+          {children}
+          {RightIcon && <RightIcon size={size === 'sm' ? 14 : size === 'lg' || size === 'xl' ? 20 : 16} />}
+        </>
       )}
-      {!loading && leftIcon}
-      {children}
-      {!loading && rightIcon}
-    </button>
+    </motion.button>
   );
 });
 
