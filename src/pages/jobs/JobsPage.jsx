@@ -90,7 +90,7 @@ export const JobsPage = () => {
         <div>
           <Button
             size="sm"
-            leftIcon={<Plus size={16} />}
+            leftIcon={Plus}
             onClick={() => setShowCreateModal(true)}
           >
             Ish yaratish

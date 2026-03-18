@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/shared/api/api';
 import { Button } from '@/shared/ui/atoms/Button';
-import { FormField } from '@/shared/ui/molecules/FormField';
+import { Input } from '@/shared/ui/atoms/Input';
 import { Card, CardContent } from '@/shared/ui/molecules/Card';
 import { Typography } from '@/shared/ui/atoms/Typography';
 import { Mail, Lock, ArrowRight } from 'lucide-react';
@@ -49,25 +49,35 @@ export const LoginPage = () => {
         <Card>
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
-              <FormField
-                label="Email"
-                type="email"
-                placeholder="email@example.com"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                leftIcon={<Mail size={18} />}
-                required
-              />
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  Email <span className="text-red-400">*</span>
+                </label>
+                <Input
+                  type="email"
+                  placeholder="email@example.com"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  leftIcon={Mail}
+                  fullWidth
+                  required
+                />
+              </div>
 
-              <FormField
-                label="Parol"
-                type="password"
-                placeholder="••••••••"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                leftIcon={<Lock size={18} />}
-                required
-              />
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  Parol <span className="text-red-400">*</span>
+                </label>
+                <Input
+                  type="password"
+                  placeholder="••••••••"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  leftIcon={Lock}
+                  fullWidth
+                  required
+                />
+              </div>
 
               {error && (
                 <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">

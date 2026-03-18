@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/shared/api/api';
 import { Button } from '@/shared/ui/atoms/Button';
-import { FormField } from '@/shared/ui/molecules/FormField';
+import { Input } from '@/shared/ui/atoms/Input';
 import { Card, CardContent } from '@/shared/ui/molecules/Card';
 import { Typography } from '@/shared/ui/atoms/Typography';
 import { User, Mail, Lock, Phone, ArrowLeft, Check } from 'lucide-react';
@@ -43,19 +43,19 @@ export const RegisterPage = () => {
         email: form.email,
         password: form.password,
       });
-      
+
       // Auto login after registration
       const loginRes = await api.post('/auth/jwt/create/', {
         email: form.email,
         password: form.password,
       });
-      
+
       localStorage.setItem('access_token', loginRes.data.access);
       localStorage.setItem('refresh_token', loginRes.data.refresh);
-      
+
       const userRes = await api.get('/auth/users/me/');
       localStorage.setItem('user', JSON.stringify(userRes.data));
-      
+
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.email?.[0] || 'Ro\'yxatdan o\'tishda xatolik');
@@ -89,59 +89,89 @@ export const RegisterPage = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               {step === 1 ? (
                 <>
-                  <FormField
-                    label="Ism"
-                    placeholder="Ismingiz"
-                    value={form.first_name}
-                    onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                    leftIcon={<User size={18} />}
-                    required
-                  />
-                  <FormField
-                    label="Familiya"
-                    placeholder="Familiyangiz"
-                    value={form.last_name}
-                    onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                    leftIcon={<User size={18} />}
-                    required
-                  />
-                  <FormField
-                    label="Email"
-                    type="email"
-                    placeholder="email@example.com"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    leftIcon={<Mail size={18} />}
-                    required
-                  />
-                  <FormField
-                    label="Telefon"
-                    placeholder="+998 90 123 45 67"
-                    value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    leftIcon={<Phone size={18} />}
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                      Ism <span className="text-red-400">*</span>
+                    </label>
+                    <Input
+                      placeholder="Ismingiz"
+                      value={form.first_name}
+                      onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+                      leftIcon={User}
+                      fullWidth
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                      Familiya <span className="text-red-400">*</span>
+                    </label>
+                    <Input
+                      placeholder="Familiyangiz"
+                      value={form.last_name}
+                      onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+                      leftIcon={User}
+                      fullWidth
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                      Email <span className="text-red-400">*</span>
+                    </label>
+                    <Input
+                      type="email"
+                      placeholder="email@example.com"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      leftIcon={Mail}
+                      fullWidth
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                      Telefon
+                    </label>
+                    <Input
+                      placeholder="+998 90 123 45 67"
+                      value={form.phone}
+                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      leftIcon={Phone}
+                      fullWidth
+                    />
+                  </div>
                 </>
               ) : (
                 <>
-                  <FormField
-                    label="Parol"
-                    type="password"
-                    placeholder="Kuchli parol kiriting"
-                    value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
-                    leftIcon={<Lock size={18} />}
-                    required
-                  />
-                  <FormField
-                    label="Parolni tasdiqlang"
-                    type="password"
-                    placeholder="Parolni qayta kiriting"
-                    value={form.password_confirm}
-                    onChange={(e) => setForm({ ...form, password_confirm: e.target.value })}
-                    leftIcon={<Check size={18} />}
-                    required
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                      Parol <span className="text-red-400">*</span>
+                    </label>
+                    <Input
+                      type="password"
+                      placeholder="Kuchli parol kiriting"
+                      value={form.password}
+                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      leftIcon={Lock}
+                      fullWidth
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                      Parolni tasdiqlang <span className="text-red-400">*</span>
+                    </label>
+                    <Input
+                      type="password"
+                      placeholder="Parolni qayta kiriting"
+                      value={form.password_confirm}
+                      onChange={(e) => setForm({ ...form, password_confirm: e.target.value })}
+                      leftIcon={Check}
+                      fullWidth
+                      required
+                    />
+                  </div>
                 </>
               )}
 
