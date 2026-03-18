@@ -97,7 +97,7 @@ export const RegisterPage = () => {
                       placeholder="Ismingiz"
                       value={form.first_name}
                       onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                      leftIcon={User}
+                      leftIcon={<User size={18} />}
                       fullWidth
                       required
                     />
@@ -110,7 +110,7 @@ export const RegisterPage = () => {
                       placeholder="Familiyangiz"
                       value={form.last_name}
                       onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                      leftIcon={User}
+                      leftIcon={<User size={18} />}
                       fullWidth
                       required
                     />
@@ -124,7 +124,7 @@ export const RegisterPage = () => {
                       placeholder="email@example.com"
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      leftIcon={Mail}
+                      leftIcon={<Mail size={18} />}
                       fullWidth
                       required
                     />
@@ -137,7 +137,7 @@ export const RegisterPage = () => {
                       placeholder="+998 90 123 45 67"
                       value={form.phone}
                       onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                      leftIcon={Phone}
+                      leftIcon={<Phone size={18} />}
                       fullWidth
                     />
                   </div>
@@ -153,7 +153,7 @@ export const RegisterPage = () => {
                       placeholder="Kuchli parol kiriting"
                       value={form.password}
                       onChange={(e) => setForm({ ...form, password: e.target.value })}
-                      leftIcon={Lock}
+                      leftIcon={<Lock size={18} />}
                       fullWidth
                       required
                     />
@@ -167,7 +167,7 @@ export const RegisterPage = () => {
                       placeholder="Parolni qayta kiriting"
                       value={form.password_confirm}
                       onChange={(e) => setForm({ ...form, password_confirm: e.target.value })}
-                      leftIcon={Check}
+                      leftIcon={<Check size={18} />}
                       fullWidth
                       required
                     />

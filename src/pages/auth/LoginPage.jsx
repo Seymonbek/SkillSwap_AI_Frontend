@@ -58,7 +58,7 @@ export const LoginPage = () => {
                   placeholder="email@example.com"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  leftIcon={Mail}
+                  leftIcon={<Mail size={18} />}
                   fullWidth
                   required
                 />
@@ -73,7 +73,7 @@ export const LoginPage = () => {
                   placeholder="••••••••"
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  leftIcon={Lock}
+                  leftIcon={<Lock size={18} />}
                   fullWidth
                   required
                 />
