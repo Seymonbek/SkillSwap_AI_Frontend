@@ -162,7 +162,7 @@ export const JobsPage = () => {
             variant="outline"
             size="sm"
             onClick={() => setShowCreateModal(true)}
-            leftIcon={<Plus size={16} />}
+            leftIcon={Plus}
           >
             Ish yaratish
           </Button>

@@ -195,7 +195,7 @@ export const DashboardPage = () => {
                 size="sm"
                 onClick={() => navigate('/jobs')}
                 className="mt-4"
-                leftIcon={<Plus size={16} />}
+                leftIcon={Plus}
               >
                 Ish yaratish
               </Button>

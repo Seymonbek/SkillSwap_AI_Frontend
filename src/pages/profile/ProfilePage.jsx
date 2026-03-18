@@ -127,7 +127,7 @@ export const ProfilePage = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  leftIcon={<Edit3 size={14} />}
+                  leftIcon={Edit3}
                   onClick={() => setShowEditModal(true)}
                 >
                   Tahrirlash
@@ -135,7 +135,7 @@ export const ProfilePage = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  leftIcon={<LogOut size={14} />}
+                  leftIcon={LogOut}
                   onClick={handleLogout}
                 >
                   Chiqish

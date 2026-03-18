@@ -14,14 +14,14 @@ export const VideoPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const roomId = searchParams.get('room');
-  
+
   const [calls, setCalls] = useState([]);
   const [activeCall, setActiveCall] = useState(null);
   const [isInCall, setIsInCall] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
-  
+
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
@@ -52,22 +52,22 @@ export const VideoPage = () => {
     try {
       // Get ICE servers
       const iceRes = await api.get('/video-calls/ice-servers/');
-      
+
       // Create call
       const callRes = await api.post('/video-calls/', {
         room_id: id,
         call_type: 'VIDEO',
       });
-      
+
       setActiveCall(callRes.data);
       setIsInCall(true);
-      
+
       // Initialize WebRTC
       await initializeWebRTC(iceRes.data);
-      
+
       // Connect WebSocket for signaling
       connectSignaling(id);
-      
+
       // Start timer
       timerRef.current = setInterval(() => {
         setCallDuration(prev => prev + 1);
@@ -84,7 +84,7 @@ export const VideoPage = () => {
         video: true,
         audio: true,
       });
-      
+
       localStreamRef.current = stream;
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
@@ -115,7 +115,7 @@ export const VideoPage = () => {
 
   const connectSignaling = (id) => {
     const ws = createWebSocket(`/ws/call/${id}/`);
-    
+
     ws.onopen = () => {
       console.log('Call WebSocket connected');
       // Create offer
@@ -124,7 +124,7 @@ export const VideoPage = () => {
 
     ws.onmessage = async (event) => {
       const data = JSON.parse(event.data);
-      
+
       switch (data.type) {
         case 'offer':
           await handleOffer(data.offer);
@@ -248,7 +248,7 @@ export const VideoPage = () => {
               <Button
                 variant="primary"
                 size="sm"
-                leftIcon={<Video size={16} />}
+                leftIcon={Video}
                 onClick={() => navigate('/chat')}
               >
                 Yangi qo'ng'iroq
