@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { api } from '@/shared/api/api';
-import { useToast } from '@/shared/ui/providers/ToastProvider';
 import { Card, CardContent, CardHeader } from '@/shared/ui/molecules/Card';
 import { Button } from '@/shared/ui/atoms/Button';
 import { Avatar } from '@/shared/ui/atoms/Avatar';
@@ -15,22 +13,11 @@ import { cn } from '@/shared/lib/utils';
 import {
   Mail, Phone, MapPin, Calendar, Star, Briefcase,
   Award, Settings, LogOut, ChevronRight, Camera, Edit3,
-  Wallet, Shield, Bell, Zap, Sparkles, Crown
+  Wallet, Shield, Bell
 } from 'lucide-react';
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 }
-};
 
 export const ProfilePage = () => {
   const navigate = useNavigate();
-  const { success, error: showError } = useToast();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -45,7 +32,7 @@ export const ProfilePage = () => {
       setUser(res.data);
       setEditForm(res.data);
     } catch (err) {
-      showError('Profil ma\'lumotlarini yuklashda xatolik');
+      console.error('Fetch profile error:', err);
     } finally {
       setLoading(false);
     }
@@ -59,10 +46,9 @@ export const ProfilePage = () => {
       const res = await api.patch('/auth/users/me/', editForm);
       setUser(res.data);
       localStorage.setItem('user', JSON.stringify(res.data));
-      success('Profil muvaffaqiyatli yangilandi!');
       setShowEditModal(false);
     } catch (err) {
-      showError('Saqlashda xatolik');
+      console.error('Save profile error:', err);
     } finally {
       setSaving(false);
     }
@@ -77,7 +63,7 @@ export const ProfilePage = () => {
 
   const menuItems = [
     { icon: Briefcase, label: 'Mening ishlarim', color: 'from-blue-500 to-cyan-500', onClick: () => navigate('/jobs') },
-    { icon: Wallet, label: 'To\'lovlar', color: 'from-emerald-500 to-teal-500', onClick: () => success('Tez orada!') },
+    { icon: Wallet, label: 'To\'lovlar', color: 'from-emerald-500 to-teal-500', onClick: () => { } },
     { icon: Shield, label: 'Xavfsizlik', color: 'from-purple-500 to-pink-500', onClick: () => { } },
     { icon: Bell, label: 'Bildirishnomalar', color: 'from-amber-500 to-orange-500', onClick: () => navigate('/notifications') },
     { icon: Settings, label: 'Sozlamalar', color: 'from-slate-500 to-slate-600', onClick: () => { } },
@@ -93,31 +79,19 @@ export const ProfilePage = () => {
   }
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="p-4 space-y-4"
-    >
+    <div className="p-4 space-y-4">
       {/* Profile Header Card */}
-      <motion.div variants={itemVariants}>
+      <div>
         <Card gradient className="relative overflow-hidden">
           {/* Animated Cover */}
           <div className="h-32 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 relative overflow-hidden">
-            <motion.div
-              animate={{ x: [0, 100, 0], opacity: [0.3, 0.6, 0.3] }}
-              transition={{ duration: 5, repeat: Infinity }}
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-            />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
           </div>
 
           <CardContent className="p-4 relative">
             <div className="flex flex-col items-center -mt-16">
               {/* Avatar with glow */}
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="relative"
-              >
+              <div className="relative">
                 <div className="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 blur-xl opacity-50" />
                 <Avatar
                   src={user?.avatar}
@@ -125,14 +99,10 @@ export const ProfilePage = () => {
                   size="2xl"
                   className="relative border-4 border-slate-900 shadow-2xl"
                 />
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="absolute bottom-0 right-0 p-2 bg-slate-800 rounded-full border border-slate-700 shadow-lg"
-                >
+                <button className="absolute bottom-0 right-0 p-2 bg-slate-800 rounded-full border border-slate-700 shadow-lg">
                   <Camera size={16} className="text-slate-400" />
-                </motion.button>
-              </motion.div>
+                </button>
+              </div>
 
               {/* User Info */}
               <Typography.H3 className="mt-4 text-center">
@@ -176,7 +146,7 @@ export const ProfilePage = () => {
             {/* Stats Grid */}
             <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-white/[0.06]">
               <StatBox icon={Briefcase} value="12" label="Ishlar" color="text-blue-400" />
-              <StatBox icon={Zap} value="48" label="Bog'lanish" color="text-emerald-400" />
+              <StatBox icon={Star} value="48" label="Bog'lanish" color="text-emerald-400" />
               <StatBox
                 icon={Star}
                 value="4.9"
@@ -187,10 +157,10 @@ export const ProfilePage = () => {
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
 
       {/* Info Card */}
-      <motion.div variants={itemVariants}>
+      <div>
         <Card gradient>
           <CardHeader icon={Award}>
             <Typography.H4>Ma'lumotlar</Typography.H4>
@@ -206,19 +176,17 @@ export const ProfilePage = () => {
             />
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
 
       {/* Menu */}
-      <motion.div variants={itemVariants}>
+      <div>
         <Card className="p-0 overflow-hidden">
           {menuItems.map((item, index) => (
-            <motion.button
+            <button
               key={item.label}
-              whileHover={{ x: 4, backgroundColor: 'rgba(255,255,255,0.03)' }}
-              whileTap={{ scale: 0.98 }}
               onClick={item.onClick}
               className={cn(
-                'w-full flex items-center justify-between p-4 transition-all',
+                'w-full flex items-center justify-between p-4 transition-all hover:bg-slate-800/50',
                 index !== menuItems.length - 1 && 'border-b border-white/[0.04]'
               )}
             >
@@ -233,27 +201,10 @@ export const ProfilePage = () => {
                 <span className="font-medium text-slate-200">{item.label}</span>
               </div>
               <ChevronRight size={18} className="text-slate-600" />
-            </motion.button>
+            </button>
           ))}
         </Card>
-      </motion.div>
-
-      {/* Pro Banner */}
-      <motion.div variants={itemVariants}>
-        <div className="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-r from-amber-500/20 via-purple-500/20 to-pink-500/20 border border-white/[0.08]">
-          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-purple-500/10" />
-          <div className="relative flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-purple-500 flex items-center justify-center">
-              <Crown size={24} className="text-white" />
-            </div>
-            <div className="flex-1">
-              <Typography.H4 className="text-base">Pro versiya</Typography.H4>
-              <Typography.Small muted>Barcha imkoniyatlardan foydalaning</Typography.Small>
-            </div>
-            <Button size="sm" variant="glass">Yangilash</Button>
-          </div>
-        </div>
-      </motion.div>
+      </div>
 
       {/* Edit Modal */}
       <Modal
@@ -294,7 +245,7 @@ export const ProfilePage = () => {
           />
         </form>
       </Modal>
-    </motion.div>
+    </div>
   );
 };
 

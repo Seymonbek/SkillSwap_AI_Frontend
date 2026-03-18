@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/shared/api/api';
-import { useToast } from '@/shared/ui/providers/ToastProvider';
 import { Card, CardContent, CardHeader, CardFooter } from '@/shared/ui/molecules/Card';
 import { Button } from '@/shared/ui/atoms/Button';
 import { Typography } from '@/shared/ui/atoms/Typography';
@@ -13,22 +11,11 @@ import { FormField } from '@/shared/ui/molecules/FormField';
 import { cn, formatNumber, truncateText } from '@/shared/lib/utils';
 import {
   Search, Filter, Plus, Briefcase, Clock, DollarSign,
-  ChevronRight, Bookmark, Sparkles, TrendingUp, Zap
+  ChevronRight, Bookmark
 } from 'lucide-react';
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0 }
-};
 
 export const JobsPage = () => {
   const navigate = useNavigate();
-  const { success, error: showError } = useToast();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,7 +35,7 @@ export const JobsPage = () => {
       const res = await api.get(`/freelance/jobs/${params}`);
       setJobs(res.data.results || []);
     } catch (err) {
-      showError('Ishlarni yuklashda xatolik');
+      console.error('Fetch jobs error:', err);
     } finally {
       setLoading(false);
     }
@@ -67,12 +54,11 @@ export const JobsPage = () => {
       };
 
       await api.post('/freelance/jobs/', payload);
-      success('Ish muvaffaqiyatli yaratildi!');
       setShowCreateModal(false);
       setCreateForm({ title: '', description: '', budget: '', deadline: '', required_skills: '' });
       fetchJobs();
     } catch (err) {
-      showError('Ish yaratishda xatolik');
+      console.error('Create job error:', err);
     } finally {
       setCreating(false);
     }
@@ -91,14 +77,9 @@ export const JobsPage = () => {
   ];
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="p-4 space-y-4"
-    >
+    <div className="p-4 space-y-4">
       {/* Header */}
-      <motion.div variants={itemVariants} className="flex items-center justify-between">
+      <div className="flex items-center justify-between">
         <div>
           <Typography.H3 className="text-gradient">Ishlar</Typography.H3>
           <Typography.Small muted className="flex items-center gap-1">
@@ -106,7 +87,7 @@ export const JobsPage = () => {
             {jobs.length} ta ish mavjud
           </Typography.Small>
         </div>
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <div>
           <Button
             size="sm"
             leftIcon={<Plus size={16} />}
@@ -114,11 +95,11 @@ export const JobsPage = () => {
           >
             Ish yaratish
           </Button>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
 
       {/* Search */}
-      <motion.div variants={itemVariants} className="relative">
+      <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
         <input
           type="text"
@@ -130,15 +111,13 @@ export const JobsPage = () => {
                      focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20
                      transition-all duration-200"
         />
-      </motion.div>
+      </div>
 
       {/* Filters */}
-      <motion.div variants={itemVariants} className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {filters.map((filter) => (
-          <motion.button
+          <button
             key={filter.value}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
             onClick={() => setFilterStatus(filter.value)}
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all',
@@ -156,9 +135,9 @@ export const JobsPage = () => {
                 {filter.count}
               </span>
             )}
-          </motion.button>
+          </button>
         ))}
-      </motion.div>
+      </div>
 
       {/* Jobs List */}
       {loading ? (
@@ -168,27 +147,13 @@ export const JobsPage = () => {
           ))}
         </div>
       ) : filteredJobs.length > 0 ? (
-        <motion.div variants={containerVariants} className="space-y-4">
-          <AnimatePresence>
-            {filteredJobs.map((job, i) => (
-              <motion.div
-                key={job.id}
-                variants={itemVariants}
-                initial="hidden"
-                animate="visible"
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <JobCard job={job} />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
+        <div className="space-y-4">
+          {filteredJobs.map((job) => (
+            <JobCard key={job.id} job={job} />
+          ))}
+        </div>
       ) : (
-        <motion.div
-          variants={itemVariants}
-          className="text-center py-12"
-        >
+        <div className="text-center py-12">
           <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
             <Briefcase size={40} className="text-slate-600" />
           </div>
@@ -201,7 +166,7 @@ export const JobsPage = () => {
           >
             Ish yaratish
           </Button>
-        </motion.div>
+        </div>
       )}
 
       {/* Create Job Modal */}
@@ -259,7 +224,7 @@ export const JobsPage = () => {
           />
         </form>
       </Modal>
-    </motion.div>
+    </div>
   );
 };
 
@@ -268,14 +233,13 @@ const JobCard = ({ job }) => {
   const navigate = useNavigate();
 
   const statusConfig = {
-    OPEN: { variant: 'success', icon: Zap, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    IN_PROGRESS: { variant: 'warning', icon: TrendingUp, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-    COMPLETED: { variant: 'default', icon: Sparkles, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    CANCELLED: { variant: 'danger', icon: null, color: 'text-red-400', bg: 'bg-red-500/10' },
+    OPEN: { variant: 'success', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    IN_PROGRESS: { variant: 'warning', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    COMPLETED: { variant: 'default', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    CANCELLED: { variant: 'danger', color: 'text-red-400', bg: 'bg-red-500/10' },
   };
 
   const config = statusConfig[job.status] || statusConfig.OPEN;
-  const StatusIcon = config.icon;
 
   return (
     <Card hover gradient glow onClick={() => navigate(`/jobs/${job.id}`)} className="cursor-pointer">
@@ -288,7 +252,6 @@ const JobCard = ({ job }) => {
                 variant={config.variant}
                 className={cn('flex items-center gap-1', config.bg)}
               >
-                {StatusIcon && <StatusIcon size={12} />}
                 {job.status}
               </Badge>
               <Typography.Small muted className="flex items-center gap-1">
@@ -341,14 +304,12 @@ const JobCard = ({ job }) => {
 
           {/* Actions */}
           <div className="flex flex-col items-end gap-2">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
+            <button
               onClick={(e) => { e.stopPropagation(); }}
               className="p-2 rounded-xl glass-card text-slate-500 hover:text-emerald-400"
             >
               <Bookmark size={18} />
-            </motion.button>
+            </button>
             <ChevronRight size={20} className="text-slate-600" />
           </div>
         </div>
