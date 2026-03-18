@@ -1,10 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { motion } from 'framer-motion';
 import { cn } from '@/shared/lib/utils';
 import { Loader2 } from 'lucide-react';
 
 /**
- * Button Atom - 100/100 Professional Grade
+ * Button Atom - Professional Grade
  * Shine effect, ripple animation, smooth transitions
  */
 
@@ -98,14 +97,13 @@ export const Button = React.forwardRef(({
   };
 
   return (
-    <motion.button
+    <button
       ref={(node) => {
         buttonRef.current = node;
         if (typeof ref === 'function') ref(node);
         else if (ref) ref.current = node;
       }}
       disabled={disabled || loading}
-      whileTap={{ scale: disabled || loading ? 1 : 0.98 }}
       className={cn(
         'inline-flex items-center justify-center rounded-xl transition-all duration-200',
         'disabled:opacity-50 disabled:cursor-not-allowed',
@@ -141,7 +139,7 @@ export const Button = React.forwardRef(({
           {RightIcon && <RightIcon size={size === 'sm' ? 14 : size === 'lg' || size === 'xl' ? 20 : 16} />}
         </>
       )}
-    </motion.button>
+    </button>
   );
 });
 

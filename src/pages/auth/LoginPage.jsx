@@ -80,7 +80,7 @@ export const LoginPage = () => {
                 fullWidth
                 size="lg"
                 loading={loading}
-                rightIcon={!loading && <ArrowRight size={18} />}
+                rightIcon={ArrowRight}
               >
                 Kirish
               </Button>
