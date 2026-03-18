@@ -11,7 +11,7 @@ import { Mail, Lock, ArrowRight, Sparkles, Zap } from 'lucide-react';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
-  const { error: showError, success } = useToast();
+  // const { error: showError, success } = useToast();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ email: '', password: '' });
 
@@ -27,10 +27,11 @@ export const LoginPage = () => {
       const userRes = await api.get('/auth/users/me/');
       localStorage.setItem('user', JSON.stringify(userRes.data));
 
-      success('Xush kelibsiz!');
+      // success('Xush kelibsiz!');
       navigate('/dashboard');
     } catch (err) {
-      showError(err.response?.data?.detail || 'Email yoki parol noto\'g\'ri');
+      // showError(err.response?.data?.detail || 'Email yoki parol noto\'g\'ri');
+      alert(err.response?.data?.detail || 'Xatolik');
     } finally {
       setLoading(false);
     }
