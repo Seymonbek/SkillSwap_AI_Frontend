@@ -66,8 +66,14 @@ api.interceptors.response.use(
 // WebSocket connection helper
 export const createWebSocket = (endpoint) => {
   const token = localStorage.getItem('access_token');
-  const wsUrl = API_BASE_URL.replace('http', 'ws').replace('/api/v1', '');
-  return new WebSocket(`${wsUrl}${endpoint}?token=${token}`);
+  // Convert http to ws and remove /api/v1 from the base URL
+  const baseUrl = API_BASE_URL.replace('http://', 'ws://').replace('https://', 'wss://').replace('/api/v1', '');
+  const wsUrl = token
+    ? `${baseUrl}${endpoint}?token=${token}`
+    : `${baseUrl}${endpoint}`;
+  console.log('WebSocket connecting to:', wsUrl);
+  return new WebSocket(wsUrl);
 };
 
 export { api, API_BASE_URL };
+export default api;

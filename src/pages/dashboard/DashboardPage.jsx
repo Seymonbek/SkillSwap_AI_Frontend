@@ -1,28 +1,40 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '@/shared/api/api';
-import { Card, CardContent, CardHeader } from '@/shared/ui/molecules/Card';
-import { ListItem } from '@/shared/ui/molecules/ListItem';
-import { Button } from '@/shared/ui/atoms/Button';
-import { Typography } from '@/shared/ui/atoms/Typography';
-import { Skeleton } from '@/shared/ui/atoms/Skeleton';
-import { cn } from '@/shared/lib/utils';
+import { motion } from 'framer-motion';
 import {
-  Briefcase, MessageSquare, Users, TrendingUp, Plus,
-  ChevronRight, Star, Zap, Sparkles, ArrowUpRight, Clock
+  freelanceService, chatService, barterService,
+  notificationsService, authService
+} from '@/shared/api';
+import {
+  Briefcase, MessageSquare, Star, TrendingUp,
+  Clock, ArrowRight, Activity, Users, DollarSign,
+  Zap, ChevronRight, Sparkles, Search, BookOpen,
+  Bell, Wallet, FileText
 } from 'lucide-react';
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+};
 
 export const DashboardPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
   const [stats, setStats] = useState({
     activeJobs: 0,
-    messages: 0,
-    connections: 0,
-    earnings: 0,
+    totalMessages: 0,
+    barterSessions: 0,
+    unreadNotifications: 0,
   });
   const [recentJobs, setRecentJobs] = useState([]);
-  const [recentMessages, setRecentMessages] = useState([]);
+  const [recentRooms, setRecentRooms] = useState([]);
+  const [mentorships, setMentorships] = useState([]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -30,231 +42,298 @@ export const DashboardPage = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const [jobsRes, chatRes] = await Promise.all([
-        api.get('/freelance/jobs/'),
-        api.get('/chat/rooms/')
+      const results = await Promise.allSettled([
+        freelanceService.getJobs(),                     // 0
+        chatService.getRooms(),                          // 1
+        barterService.getMentorships(),                  // 2
+        notificationsService.getUnreadCount(),           // 3
+        authService.getMe(),                             // 4
       ]);
 
-      setRecentJobs(jobsRes.data.results?.slice(0, 3) || []);
-      setRecentMessages(chatRes.data.slice(0, 3) || []);
+      // Jobs
+      if (results[0].status === 'fulfilled') {
+        const jobsData = results[0].value.data;
+        const jobs = jobsData?.results || jobsData || [];
+        setRecentJobs(jobs.slice(0, 3));
+        setStats(prev => ({ ...prev, activeJobs: jobsData?.count || jobs.length }));
+      }
 
-      setStats({
-        activeJobs: jobsRes.data.count || 0,
-        messages: chatRes.data.length || 0,
-        connections: 12,
-        earnings: 0,
-      });
+      // Chat Rooms
+      if (results[1].status === 'fulfilled') {
+        const roomsData = results[1].value.data;
+        const rooms = roomsData?.results || roomsData || [];
+        setRecentRooms(rooms.slice(0, 3));
+        setStats(prev => ({ ...prev, totalMessages: rooms.length }));
+      }
+
+      // Mentorships
+      if (results[2].status === 'fulfilled') {
+        const barterData = results[2].value.data;
+        const items = barterData?.results || barterData || [];
+        setMentorships(items.slice(0, 3));
+        setStats(prev => ({ ...prev, barterSessions: items.length }));
+      }
+
+      // Unread count
+      if (results[3].status === 'fulfilled') {
+        const countData = results[3].value.data;
+        setStats(prev => ({
+          ...prev,
+          unreadNotifications: countData?.count ?? countData?.unread_count ?? 0,
+        }));
+      }
+
+      // User profile
+      if (results[4].status === 'fulfilled') {
+        const userData = results[4].value.data;
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+      } else {
+        const stored = localStorage.getItem('user');
+        if (stored) setUser(JSON.parse(stored));
+      }
     } catch (err) {
-      console.error('Dashboard error:', err);
+      console.error('Dashboard fetch error:', err);
+      const stored = localStorage.getItem('user');
+      if (stored) setUser(JSON.parse(stored));
     } finally {
       setLoading(false);
     }
   };
 
   const statCards = [
-    {
-      icon: Briefcase,
-      label: 'Faol ishlar',
-      value: stats.activeJobs,
-      trend: '+12%',
-      color: 'from-blue-500 to-cyan-500',
-      onClick: () => navigate('/jobs')
-    },
-    {
-      icon: MessageSquare,
-      label: 'Xabarlar',
-      value: stats.messages,
-      trend: '+5',
-      color: 'from-emerald-500 to-teal-500',
-      onClick: () => navigate('/chat')
-    },
-    {
-      icon: Users,
-      label: 'Bog\'lanishlar',
-      value: stats.connections,
-      trend: '+3',
-      color: 'from-purple-500 to-pink-500',
-      onClick: () => navigate('/profile')
-    },
-    {
-      icon: TrendingUp,
-      label: 'Daromad',
-      value: `$${stats.earnings}`,
-      trend: '0%',
-      color: 'from-amber-500 to-orange-500',
-      onClick: () => { }
-    },
+    { icon: Briefcase, label: 'Faol ishlar', value: stats.activeJobs, color: 'from-blue-500 to-cyan-500', iconColor: 'text-blue-400' },
+    { icon: MessageSquare, label: 'Xabarlar', value: stats.totalMessages, color: 'from-violet-500 to-purple-500', iconColor: 'text-violet-400' },
+    { icon: BookOpen, label: 'Barter', value: stats.barterSessions, color: 'from-amber-500 to-orange-500', iconColor: 'text-amber-400' },
+    { icon: Bell, label: "O'qilmagan", value: stats.unreadNotifications, color: 'from-red-500 to-pink-500', iconColor: 'text-red-400' },
   ];
 
   const quickActions = [
-    { icon: Briefcase, label: 'Ish qidirish', color: 'text-blue-400', onClick: () => navigate('/jobs') },
-    { icon: MessageSquare, label: 'Xabarlar', color: 'text-emerald-400', onClick: () => navigate('/chat') },
-    { icon: Users, label: 'Profil', color: 'text-purple-400', onClick: () => navigate('/profile') },
-    { icon: Star, label: 'Reyting', color: 'text-amber-400', onClick: () => { } },
+    { icon: Search, label: 'Ish qidirish', onClick: () => navigate('/jobs'), color: 'from-emerald-500 to-teal-500' },
+    { icon: Users, label: 'Mentor topish', onClick: () => navigate('/barter'), color: 'from-violet-500 to-purple-500' },
+    { icon: MessageSquare, label: 'Xabarlar', onClick: () => navigate('/chat'), color: 'from-blue-500 to-cyan-500' },
+    { icon: Wallet, label: "Hamyon", onClick: () => navigate('/wallet'), color: 'from-amber-500 to-orange-500' },
+    { icon: FileText, label: 'Shartnomalar', onClick: () => navigate('/contracts'), color: 'from-pink-500 to-rose-500' },
+    { icon: Sparkles, label: 'AI Qidiruv', onClick: () => navigate('/search'), color: 'from-cyan-500 to-blue-500' },
   ];
 
+  if (loading) {
+    return (
+      <div className="p-4 space-y-4">
+        <div className="glass-card h-32 animate-pulse" />
+        <div className="grid grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="glass-card h-24 animate-pulse" />
+          ))}
+        </div>
+        <div className="glass-card h-48 animate-pulse" />
+      </div>
+    );
+  }
+
   return (
-    <div className="p-4 space-y-6">
-      {/* Welcome Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <Typography.H3 className="text-gradient">Bosh sahifa</Typography.H3>
-          <Typography.Small muted>Bugun nima qilmoqchisiz?</Typography.Small>
-        </div>
+    <div className="min-h-screen p-4 pb-24">
+      {/* Background */}
+      <div className="blob-bg">
+        <div className="blob blob-1" style={{ width: '300px', height: '300px', opacity: 0.15 }} />
+        <div className="blob blob-3" style={{ width: '200px', height: '200px', opacity: 0.1 }} />
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-4 gap-3">
-        {quickActions.map((action) => (
-          <button
-            key={action.label}
-            onClick={action.onClick}
-            className="flex flex-col items-center gap-2 p-4 rounded-2xl glass-card hover:bg-slate-800/50 transition-colors"
-          >
-            <action.icon className={cn('w-6 h-6', action.color)} />
-            <span className="text-xs font-medium text-slate-300">{action.label}</span>
-          </button>
-        ))}
-      </div>
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={staggerContainer}
+        className="max-w-4xl mx-auto space-y-6 relative z-10"
+      >
+        {/* Welcome */}
+        <motion.div variants={fadeInUp}>
+          <div className="glass-card p-6 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-transparent to-purple-500/10" />
+            <div className="relative z-10">
+              <h1 className="text-2xl font-bold text-white mb-1">
+                Salom, <span className="neon-text">{user?.first_name || 'Foydalanuvchi'}</span>! 👋
+              </h1>
+              <p className="text-slate-400">Bugungi ish kuniga tayyor!</p>
+            </div>
+          </div>
+        </motion.div>
 
-      {/* Stats Grid */}
-      {loading ? (
-        <div className="grid grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-32 rounded-2xl" />
+        {/* Stats Grid */}
+        <motion.div variants={fadeInUp} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {statCards.map((stat, index) => (
+            <div key={index} className="glass-card p-4 group hover:scale-[1.02] transition-transform">
+              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
+                <stat.icon className="w-5 h-5 text-white" />
+              </div>
+              <p className="text-2xl font-bold text-white">{stat.value}</p>
+              <p className="text-sm text-slate-400">{stat.label}</p>
+            </div>
           ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-4">
-          {statCards.map((stat) => (
-            <div
-              key={stat.label}
-              onClick={stat.onClick}
-              className="cursor-pointer"
+        </motion.div>
+
+        {/* Quick Actions */}
+        <motion.div variants={fadeInUp}>
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <Zap className="w-5 h-5 text-emerald-400" />
+            Tezkor harakatlar
+          </h2>
+          <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
+            {quickActions.map((action, index) => (
+              <button
+                key={index}
+                onClick={action.onClick}
+                className="glass-card p-4 flex flex-col items-center gap-2 hover:scale-[1.05] transition-all group"
+              >
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg`}>
+                  <action.icon className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-xs text-slate-300 font-medium text-center">{action.label}</span>
+              </button>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Recent Jobs */}
+        <motion.div variants={fadeInUp}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Briefcase className="w-5 h-5 text-blue-400" />
+              So'nggi ishlar
+            </h2>
+            <button
+              onClick={() => navigate('/jobs')}
+              className="text-sm text-emerald-400 flex items-center gap-1 hover:text-emerald-300 transition-colors"
             >
-              <Card gradient glow padding="lg">
-                <div className={cn(
-                  'w-12 h-12 rounded-xl flex items-center justify-center',
-                  'bg-gradient-to-br shadow-lg',
-                  stat.color
-                )}>
-                  <stat.icon className="text-white" size={24} />
-                </div>
-                <div className="mt-4">
-                  <Typography.H4 className="text-2xl font-bold">{stat.value}</Typography.H4>
-                  <Typography.Small muted>{stat.label}</Typography.Small>
-                </div>
-              </Card>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Recent Jobs */}
-      <Card gradient>
-        <CardHeader
-          icon={Briefcase}
-          action={
-            <Button variant="ghost" size="sm" onClick={() => navigate('/jobs')}>
-              Hammasi <ChevronRight size={16} />
-            </Button>
-          }
-        >
-          <Typography.H4>So'nggi ishlar</Typography.H4>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-20 rounded-xl" />
-              ))}
-            </div>
-          ) : recentJobs.length > 0 ? (
-            <div className="space-y-3">
-              {recentJobs.map((job) => (
-                <ListItem
-                  key={job.id}
-                  title={job.title}
-                  subtitle={job.description?.slice(0, 60) + '...'}
-                  badge={{
-                    text: job.status,
-                    variant: job.status === 'OPEN' ? 'success' : 'default'
-                  }}
-                  onClick={() => navigate(`/jobs/${job.id}`)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-800/50 flex items-center justify-center">
-                <Briefcase size={32} className="text-slate-600" />
-              </div>
-              <Typography.Small muted>Hozircha ishlar yo'q</Typography.Small>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/jobs')}
-                className="mt-4"
-                leftIcon={Plus}
+              Barchasi <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="space-y-3">
+            {recentJobs.length > 0 ? recentJobs.map(job => (
+              <div
+                key={job.id}
+                onClick={() => navigate(`/jobs/${job.id}`)}
+                className="glass-card p-4 cursor-pointer hover:bg-white/5 transition-colors"
               >
-                Ish yaratish
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Recent Messages */}
-      <Card gradient>
-        <CardHeader
-          icon={MessageSquare}
-          action={
-            <Button variant="ghost" size="sm" onClick={() => navigate('/chat')}>
-              Hammasi <ChevronRight size={16} />
-            </Button>
-          }
-        >
-          <Typography.H4>So'nggi xabarlar</Typography.H4>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-20 rounded-xl" />
-              ))}
-            </div>
-          ) : recentMessages.length > 0 ? (
-            <div className="space-y-3">
-              {recentMessages.map((room) => (
-                <ListItem
-                  key={room.id}
-                  avatar={{ name: room.name }}
-                  title={room.name}
-                  subtitle={room.last_message?.content || 'Xabar yo\'q'}
-                  time={room.last_message?.created_at}
-                  unread={room.unread_count > 0}
-                  onClick={() => navigate(`/chat/${room.id}`)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-800/50 flex items-center justify-center">
-                <MessageSquare size={32} className="text-slate-600" />
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-white truncate">{job.title}</h3>
+                    <p className="text-sm text-slate-400 mt-1 line-clamp-1">{job.description}</p>
+                    <div className="flex items-center gap-4 mt-2">
+                      <span className="text-emerald-400 font-semibold text-sm">
+                        ${job.budget_min || 0} - ${job.budget_max || 0}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs ${
+                        job.status === 'OPEN' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                        job.status === 'IN_PROGRESS' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                        'bg-slate-800 text-slate-400 border border-white/5'
+                      }`}>
+                        {job.status}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-600 flex-shrink-0" />
+                </div>
               </div>
-              <Typography.Small muted>Xabarlar yo'q</Typography.Small>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/chat')}
-                className="mt-4"
+            )) : (
+              <div className="glass-card p-6 text-center">
+                <p className="text-slate-400">Hozircha ishlar yo&apos;q</p>
+                <button onClick={() => navigate('/jobs')} className="btn-secondary mt-3 text-sm">
+                  Ishlarni ko&apos;rish
+                </button>
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Recent Chats */}
+        <motion.div variants={fadeInUp}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-violet-400" />
+              So'nggi suhbatlar
+            </h2>
+            <button
+              onClick={() => navigate('/chat')}
+              className="text-sm text-emerald-400 flex items-center gap-1 hover:text-emerald-300 transition-colors"
+            >
+              Barchasi <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="glass-card overflow-hidden">
+            {recentRooms.length > 0 ? recentRooms.map((room, index) => (
+              <div
+                key={room.id}
+                onClick={() => navigate(`/chat/${room.id}`)}
+                className={`p-4 flex items-center gap-3 cursor-pointer hover:bg-white/5 transition-colors ${
+                  index < recentRooms.length - 1 ? 'border-b border-white/5' : ''
+                }`}
               >
-                Chatga o'tish
-              </Button>
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-semibold text-sm">
+                  {room.name?.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-white truncate text-sm">{room.name}</h4>
+                  <p className="text-xs text-slate-400 truncate">
+                    {room.last_message?.content || "Xabar yo'q"}
+                  </p>
+                </div>
+                {room.unread_count > 0 && (
+                  <span className="w-5 h-5 rounded-full bg-emerald-500 text-white text-xs flex items-center justify-center">
+                    {room.unread_count}
+                  </span>
+                )}
+              </div>
+            )) : (
+              <div className="p-6 text-center">
+                <p className="text-slate-400 text-sm">Suhbatlar yo&apos;q</p>
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Recent Mentorships */}
+        {mentorships.length > 0 && (
+          <motion.div variants={fadeInUp}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-amber-400" />
+                Mentorlik
+              </h2>
+              <button
+                onClick={() => navigate('/barter')}
+                className="text-sm text-emerald-400 flex items-center gap-1 hover:text-emerald-300 transition-colors"
+              >
+                Barchasi <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <div className="space-y-3">
+              {mentorships.map(item => (
+                <div key={item.id} className="glass-card p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-white text-sm">
+                        {item.skill_offered || item.mentor_name || 'Mentorlik'}
+                      </h4>
+                      <p className="text-xs text-slate-400 mt-1">
+                        {item.status}
+                      </p>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      item.status === 'ACCEPTED' ? 'bg-emerald-500/10 text-emerald-400' :
+                      item.status === 'PENDING' ? 'bg-amber-500/10 text-amber-400' :
+                      'bg-slate-800 text-slate-400'
+                    }`}>
+                      {item.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </motion.div>
     </div>
   );
 };
+
+export default DashboardPage;
