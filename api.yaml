@@ -1,0 +1,6547 @@
+openapi: 3.0.3
+info:
+  title: SkillSwap AI API
+  version: 1.0.0
+  description: Barter ta'lim va Freelance xizmatlari loyihasi
+paths:
+  /api/v1/auth/jwt/create/:
+    post:
+      operationId: auth_jwt_create_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenObtainPair'
+          description: ''
+  /api/v1/auth/jwt/refresh/:
+    post:
+      operationId: auth_jwt_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/auth/jwt/verify/:
+    post:
+      operationId: auth_jwt_verify_create
+      description: |-
+        Takes a token and indicates if it is valid.  This view provides no
+        information about a token's fitness for a particular use.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenVerifyRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenVerifyRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenVerifyRequest'
+        required: true
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/users/:
+    get:
+      operationId: auth_users_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+          description: ''
+    post:
+      operationId: auth_users_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreatePasswordRetypeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserCreatePasswordRetypeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserCreatePasswordRetypeRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserCreatePasswordRetype'
+          description: ''
+  /api/v1/auth/users/{id}/:
+    get:
+      operationId: auth_users_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this foydalanuvchi.
+        required: true
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: auth_users_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this foydalanuvchi.
+        required: true
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: auth_users_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this foydalanuvchi.
+        required: true
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    delete:
+      operationId: auth_users_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this foydalanuvchi.
+        required: true
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/auth/users/activation/:
+    post:
+      operationId: auth_users_activation_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ActivationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ActivationRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activation'
+          description: ''
+  /api/v1/auth/users/me/:
+    get:
+      operationId: auth_users_me_retrieve
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: auth_users_me_update
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: auth_users_me_partial_update
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    delete:
+      operationId: auth_users_me_destroy
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/auth/users/resend_activation/:
+    post:
+      operationId: auth_users_resend_activation_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendEmailResetRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SendEmailResetRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SendEmailResetRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendEmailReset'
+          description: ''
+  /api/v1/auth/users/reset_email/:
+    post:
+      operationId: auth_users_reset_email_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendEmailResetRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SendEmailResetRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SendEmailResetRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendEmailReset'
+          description: ''
+  /api/v1/auth/users/reset_email_confirm/:
+    post:
+      operationId: auth_users_reset_email_confirm_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsernameResetConfirmRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UsernameResetConfirmRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UsernameResetConfirmRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsernameResetConfirm'
+          description: ''
+  /api/v1/auth/users/reset_password/:
+    post:
+      operationId: auth_users_reset_password_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendEmailResetRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SendEmailResetRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SendEmailResetRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendEmailReset'
+          description: ''
+  /api/v1/auth/users/reset_password_confirm/:
+    post:
+      operationId: auth_users_reset_password_confirm_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirmRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirmRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirmRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordResetConfirm'
+          description: ''
+  /api/v1/auth/users/set_email/:
+    post:
+      operationId: auth_users_set_email_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetUsernameRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SetUsernameRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SetUsernameRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetUsername'
+          description: ''
+  /api/v1/auth/users/set_password/:
+    post:
+      operationId: auth_users_set_password_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetPasswordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SetPasswordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SetPasswordRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetPassword'
+          description: ''
+  /api/v1/barter/mentorship/:
+    get:
+      operationId: barter_mentorship_list
+      description: Uzoq muddatli mentorlik kelishuvi.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - '3. BARTER: Mentorlik (Mentorship)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MentorshipRequest'
+          description: ''
+    post:
+      operationId: barter_mentorship_create
+      description: Uzoq muddatli mentorlik kelishuvi.
+      tags:
+      - '3. BARTER: Mentorlik (Mentorship)'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MentorshipRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MentorshipRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MentorshipRequestRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MentorshipRequest'
+          description: ''
+  /api/v1/barter/mentorship/{id}/:
+    get:
+      operationId: barter_mentorship_retrieve
+      description: Uzoq muddatli mentorlik kelishuvi.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - barter
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MentorshipRequest'
+          description: ''
+    put:
+      operationId: barter_mentorship_update
+      description: Uzoq muddatli mentorlik kelishuvi.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - barter
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MentorshipRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MentorshipRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MentorshipRequestRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MentorshipRequest'
+          description: ''
+    patch:
+      operationId: barter_mentorship_partial_update
+      description: Uzoq muddatli mentorlik kelishuvi.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - barter
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMentorshipRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMentorshipRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMentorshipRequestRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MentorshipRequest'
+          description: ''
+    delete:
+      operationId: barter_mentorship_destroy
+      description: Uzoq muddatli mentorlik kelishuvi.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - barter
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/barter/mentorship/{id}/accept/:
+    post:
+      operationId: barter_mentorship_accept_create
+      description: Uzoq muddatli mentorlik kelishuvi.
+      summary: Taklifni qabul qilish
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - barter
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MentorshipRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MentorshipRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MentorshipRequestRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MentorshipRequest'
+          description: ''
+  /api/v1/barter/mentorship/{id}/negotiate/:
+    post:
+      operationId: barter_mentorship_negotiate_create
+      description: Uzoq muddatli mentorlik kelishuvi.
+      summary: Vaqtni kelishish (Negotiate)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - barter
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MentorshipRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MentorshipRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MentorshipRequestRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MentorshipRequest'
+          description: ''
+  /api/v1/barter/sessions/:
+    get:
+      operationId: barter_sessions_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - '3. BARTER: Darslar (Sessions)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BarterSession'
+          description: ''
+    post:
+      operationId: barter_sessions_create
+      tags:
+      - '3. BARTER: Darslar (Sessions)'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BarterSessionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BarterSessionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BarterSessionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarterSession'
+          description: ''
+  /api/v1/barter/sessions/{id}/:
+    get:
+      operationId: barter_sessions_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - barter
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarterSession'
+          description: ''
+    put:
+      operationId: barter_sessions_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - barter
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BarterSessionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BarterSessionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BarterSessionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarterSession'
+          description: ''
+    patch:
+      operationId: barter_sessions_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - barter
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBarterSessionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBarterSessionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBarterSessionRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarterSession'
+          description: ''
+    delete:
+      operationId: barter_sessions_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - barter
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/barter/sessions/{id}/complete_session/:
+    post:
+      operationId: barter_sessions_complete_session_create
+      summary: Darsni yakunlash va Tokenlarni o'tkazish
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - barter
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BarterSessionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BarterSessionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BarterSessionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarterSession'
+          description: ''
+  /api/v1/barter/sessions/{id}/start_session/:
+    post:
+      operationId: barter_sessions_start_session_create
+      summary: Darsni boshlash
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - barter
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BarterSessionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BarterSessionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BarterSessionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarterSession'
+          description: ''
+  /api/v1/barter/sessions/matchmaking/:
+    post:
+      operationId: barter_sessions_matchmaking_create
+      description: Bilgan va o'rganmoqchi bo'lgan ko'nikmalarni kiriting, AI sizga
+        mos sheriklar topib beradi.
+      summary: 🔥 AI Sherik topish (Matchmaking)
+      tags:
+      - '3. BARTER: AI Matchmaking'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchmakingRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MatchmakingRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MatchmakingRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarterSession'
+          description: ''
+  /api/v1/chat/calls/:
+    get:
+      operationId: chat_calls_list
+      description: Qo'ng'iroq tarixi va boshqaruvi.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - '5. MULOQOT: Video/Audio Qo''ng''iroqlar'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VideoCall'
+          description: ''
+  /api/v1/chat/calls/{id}/:
+    get:
+      operationId: chat_calls_retrieve
+      description: Qo'ng'iroq tarixi va boshqaruvi.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Video qo'ng'iroq.
+        required: true
+      tags:
+      - '5. MULOQOT: Video/Audio Qo''ng''iroqlar'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoCall'
+          description: ''
+  /api/v1/chat/calls/active/:
+    get:
+      operationId: chat_calls_active_retrieve
+      description: |-
+        Foydalanuvchining hozirda faol (RINGING yoki ACTIVE) qo'ng'iroqi bormi tekshiradi.
+        Frontendda sahifa yangilanga yoki qayta ochilganda kerak.
+      summary: Faol qo'ng'iroqni tekshirish
+      tags:
+      - '5. MULOQOT: Video/Audio Qo''ng''iroqlar'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoCall'
+          description: ''
+  /api/v1/chat/calls/ice-servers/:
+    get:
+      operationId: chat_calls_ice_servers_list
+      description: |-
+        Frontend uchun STUN/TURN server ro'yxatini qaytaradi.
+        WebRTC peer ulanishni o'rnatish uchun kerak.
+      summary: STUN/TURN server konfiguratsiyasini olish
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - '5. MULOQOT: Video/Audio Qo''ng''iroqlar'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ICEServer'
+          description: ''
+  /api/v1/chat/calls/room-history/:
+    get:
+      operationId: chat_calls_room_history_list
+      description: |-
+        Aniq bir chat xonasidagi qo'ng'iroq tarixi.
+        GET /api/v1/chat/calls/room-history/?room_id=UUID
+      summary: Qo'ng'iroq tarixi (aniq bir chat xonasi uchun)
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - '5. MULOQOT: Video/Audio Qo''ng''iroqlar'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VideoCall'
+          description: ''
+  /api/v1/chat/messages/:
+    get:
+      operationId: chat_messages_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - '5. MULOQOT: Tarix (History)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+          description: ''
+  /api/v1/chat/messages/{id}/:
+    get:
+      operationId: chat_messages_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this message.
+        required: true
+      tags:
+      - '5. MULOQOT: Tarix (History)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+  /api/v1/chat/messages/mark-read/:
+    post:
+      operationId: chat_messages_mark_read_create
+      description: |-
+        room_id parametri bo'yicha berilgan xonadagi barcha xabarlarni o'qildi qilish.
+        POST /api/v1/chat/messages/mark-read/?room_id=UUID
+      summary: Xonaning barcha xabarlarini o'qildi deb belgilash
+      tags:
+      - '5. MULOQOT: Tarix (History)'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MessageRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MessageRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+  /api/v1/chat/rooms/:
+    get:
+      operationId: chat_rooms_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - '5. MULOQOT: Xonalar (Chat Rooms)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatRoom'
+          description: ''
+    post:
+      operationId: chat_rooms_create
+      tags:
+      - '5. MULOQOT: Xonalar (Chat Rooms)'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRoomRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChatRoomRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChatRoomRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatRoom'
+          description: ''
+  /api/v1/chat/rooms/{id}/:
+    get:
+      operationId: chat_rooms_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - '5. MULOQOT: Xonalar (Chat Rooms)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatRoom'
+          description: ''
+    put:
+      operationId: chat_rooms_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - '5. MULOQOT: Xonalar (Chat Rooms)'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRoomRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChatRoomRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChatRoomRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatRoom'
+          description: ''
+    patch:
+      operationId: chat_rooms_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - chat
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedChatRoomRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedChatRoomRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedChatRoomRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatRoom'
+          description: ''
+    delete:
+      operationId: chat_rooms_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - '5. MULOQOT: Xonalar (Chat Rooms)'
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/chat/rooms/{id}/upload-file/:
+    post:
+      operationId: chat_rooms_upload_file_create
+      description: |-
+        Chat xonasiga rasm, fayl yoki audio yuklash.
+        WebSocket orqali emas, REST API orqali yuklanadi.
+      summary: Chat xonasiga fayl yuborish
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - '5. MULOQOT: Xonalar (Chat Rooms)'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FileUploadRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FileUploadRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+  /api/v1/common/settings/:
+    get:
+      operationId: common_settings_list
+      description: Tizim sozlamalarini (Komissiya, Narxlar) olish.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - '9. TIZIM: Sozlamalar'
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlatformSettings'
+          description: ''
+  /api/v1/common/settings/{id}/:
+    get:
+      operationId: common_settings_retrieve
+      description: Tizim sozlamalarini (Komissiya, Narxlar) olish.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this platform settings.
+        required: true
+      tags:
+      - '9. TIZIM: Sozlamalar'
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformSettings'
+          description: ''
+  /api/v1/dispute/create/:
+    post:
+      operationId: dispute_create_create
+      description: '3. USER: Nizo ochish (Mijoz yoki Frilanser).'
+      tags:
+      - dispute
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDisputeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateDisputeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateDisputeRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateDispute'
+          description: ''
+  /api/v1/dispute/resolve/:
+    post:
+      operationId: dispute_resolve_create
+      description: |-
+        4. ADMIN: Hukm chiqarish (Eng muhim joyi).
+        Faqat Admin kira oladi!
+      tags:
+      - dispute
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveDisputeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResolveDisputeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResolveDisputeRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResolveDispute'
+          description: ''
+  /api/v1/freelance/ai/generate-and-save/:
+    post:
+      operationId: freelance_ai_generate_and_save_create
+      tags:
+      - freelance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIJobPromptRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AIJobPromptRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AIJobPromptRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIJobPrompt'
+          description: ''
+  /api/v1/freelance/ai/generate-scope/:
+    post:
+      operationId: freelance_ai_generate_scope_create
+      tags:
+      - freelance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIJobPromptRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AIJobPromptRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AIJobPromptRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIJobPrompt'
+          description: ''
+  /api/v1/freelance/ai/resume-analyzer/:
+    post:
+      operationId: freelance_ai_resume_analyzer_create
+      description: CV matnini yuborasiz, AI sizga kuchli va kuchsiz tomonlarni aytadi.
+      summary: AI orqali CV tahlil qilish
+      tags:
+      - '4. FREELANCE: AI Xizmatlari'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResumeAnalyzerRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResumeAnalyzerRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResumeAnalyzerRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeAnalyzer'
+          description: ''
+  /api/v1/freelance/contracts/:
+    get:
+      operationId: freelance_contracts_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - '4. FREELANCE: Shartnomalar (Contracts)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Contract'
+          description: ''
+  /api/v1/freelance/contracts/{id}/:
+    get:
+      operationId: freelance_contracts_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - '4. FREELANCE: Shartnomalar (Contracts)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contract'
+          description: ''
+  /api/v1/freelance/jobs/:
+    get:
+      operationId: freelance_jobs_list
+      summary: Cached list of jobs
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - '4. FREELANCE: Ishlar va Loyihalar'
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Job'
+          description: ''
+    post:
+      operationId: freelance_jobs_create
+      tags:
+      - '4. FREELANCE: Ishlar va Loyihalar'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+          description: ''
+  /api/v1/freelance/jobs/{id}/:
+    get:
+      operationId: freelance_jobs_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this job.
+        required: true
+      tags:
+      - '4. FREELANCE: Ishlar va Loyihalar'
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+          description: ''
+    put:
+      operationId: freelance_jobs_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this job.
+        required: true
+      tags:
+      - '4. FREELANCE: Ishlar va Loyihalar'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+          description: ''
+    patch:
+      operationId: freelance_jobs_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this job.
+        required: true
+      tags:
+      - freelance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedJobRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedJobRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedJobRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+          description: ''
+    delete:
+      operationId: freelance_jobs_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this job.
+        required: true
+      tags:
+      - '4. FREELANCE: Ishlar va Loyihalar'
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/freelance/milestones/:
+    get:
+      operationId: freelance_milestones_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - '4. FREELANCE: Moliya va Escrow'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Milestone'
+          description: ''
+    post:
+      operationId: freelance_milestones_create
+      tags:
+      - '4. FREELANCE: Moliya va Escrow'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MilestoneRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MilestoneRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MilestoneRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Milestone'
+          description: ''
+  /api/v1/freelance/milestones/{id}/:
+    get:
+      operationId: freelance_milestones_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - '4. FREELANCE: Moliya va Escrow'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Milestone'
+          description: ''
+    put:
+      operationId: freelance_milestones_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - freelance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MilestoneRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MilestoneRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MilestoneRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Milestone'
+          description: ''
+    patch:
+      operationId: freelance_milestones_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - freelance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMilestoneRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMilestoneRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMilestoneRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Milestone'
+          description: ''
+    delete:
+      operationId: freelance_milestones_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - freelance
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/freelance/milestones/{id}/fund/:
+    post:
+      operationId: freelance_milestones_fund_create
+      summary: Bosqichni moliyalashtirish (Pulni muzlatish)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - '4. FREELANCE: Moliya va Escrow'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MilestoneRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MilestoneRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MilestoneRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Milestone'
+          description: ''
+  /api/v1/freelance/milestones/{id}/release/:
+    post:
+      operationId: freelance_milestones_release_create
+      summary: Ishni qabul qilish va Pulni to'lash
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - '4. FREELANCE: Moliya va Escrow'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MilestoneRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MilestoneRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MilestoneRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Milestone'
+          description: ''
+  /api/v1/freelance/proposals/:
+    get:
+      operationId: freelance_proposals_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - '4. FREELANCE: Takliflar (Proposals)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Proposal'
+          description: ''
+    post:
+      operationId: freelance_proposals_create
+      tags:
+      - '4. FREELANCE: Takliflar (Proposals)'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProposalRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProposalRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProposalRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Proposal'
+          description: ''
+  /api/v1/freelance/proposals/{id}/:
+    get:
+      operationId: freelance_proposals_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this proposal.
+        required: true
+      tags:
+      - '4. FREELANCE: Takliflar (Proposals)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Proposal'
+          description: ''
+    put:
+      operationId: freelance_proposals_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this proposal.
+        required: true
+      tags:
+      - freelance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProposalRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProposalRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProposalRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Proposal'
+          description: ''
+    patch:
+      operationId: freelance_proposals_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this proposal.
+        required: true
+      tags:
+      - freelance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProposalRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProposalRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProposalRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Proposal'
+          description: ''
+    delete:
+      operationId: freelance_proposals_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this proposal.
+        required: true
+      tags:
+      - freelance
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/freelance/proposals/{id}/accept/:
+    post:
+      operationId: freelance_proposals_accept_create
+      summary: Taklifni qabul qilish (Shartnoma tuzish)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this proposal.
+        required: true
+      tags:
+      - '4. FREELANCE: Takliflar (Proposals)'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProposalRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProposalRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProposalRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Proposal'
+          description: ''
+  /api/v1/freelance/submissions/:
+    get:
+      operationId: freelance_submissions_list
+      description: |-
+        📦 Frilanser ishni topshiradi, Mijoz qabul/rad qiladi.
+
+        - POST /submissions/ — Yangi ish topshirish
+        - GET /submissions/ — Barcha topshiriqlar
+        - POST /submissions/{id}/approve/ — Mijoz qabul qiladi
+        - POST /submissions/{id}/request-revision/ — Mijoz qayta ishlashni so'raydi
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - freelance
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkSubmission'
+          description: ''
+    post:
+      operationId: freelance_submissions_create
+      description: |-
+        📦 Frilanser ishni topshiradi, Mijoz qabul/rad qiladi.
+
+        - POST /submissions/ — Yangi ish topshirish
+        - GET /submissions/ — Barcha topshiriqlar
+        - POST /submissions/{id}/approve/ — Mijoz qabul qiladi
+        - POST /submissions/{id}/request-revision/ — Mijoz qayta ishlashni so'raydi
+      tags:
+      - freelance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkSubmissionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WorkSubmissionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WorkSubmissionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkSubmission'
+          description: ''
+  /api/v1/freelance/submissions/{id}/:
+    get:
+      operationId: freelance_submissions_retrieve
+      description: |-
+        📦 Frilanser ishni topshiradi, Mijoz qabul/rad qiladi.
+
+        - POST /submissions/ — Yangi ish topshirish
+        - GET /submissions/ — Barcha topshiriqlar
+        - POST /submissions/{id}/approve/ — Mijoz qabul qiladi
+        - POST /submissions/{id}/request-revision/ — Mijoz qayta ishlashni so'raydi
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Topshiriq (Submission).
+        required: true
+      tags:
+      - freelance
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkSubmission'
+          description: ''
+    put:
+      operationId: freelance_submissions_update
+      description: |-
+        📦 Frilanser ishni topshiradi, Mijoz qabul/rad qiladi.
+
+        - POST /submissions/ — Yangi ish topshirish
+        - GET /submissions/ — Barcha topshiriqlar
+        - POST /submissions/{id}/approve/ — Mijoz qabul qiladi
+        - POST /submissions/{id}/request-revision/ — Mijoz qayta ishlashni so'raydi
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Topshiriq (Submission).
+        required: true
+      tags:
+      - freelance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkSubmissionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WorkSubmissionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WorkSubmissionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkSubmission'
+          description: ''
+    patch:
+      operationId: freelance_submissions_partial_update
+      description: |-
+        📦 Frilanser ishni topshiradi, Mijoz qabul/rad qiladi.
+
+        - POST /submissions/ — Yangi ish topshirish
+        - GET /submissions/ — Barcha topshiriqlar
+        - POST /submissions/{id}/approve/ — Mijoz qabul qiladi
+        - POST /submissions/{id}/request-revision/ — Mijoz qayta ishlashni so'raydi
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Topshiriq (Submission).
+        required: true
+      tags:
+      - freelance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedWorkSubmissionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedWorkSubmissionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedWorkSubmissionRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkSubmission'
+          description: ''
+    delete:
+      operationId: freelance_submissions_destroy
+      description: |-
+        📦 Frilanser ishni topshiradi, Mijoz qabul/rad qiladi.
+
+        - POST /submissions/ — Yangi ish topshirish
+        - GET /submissions/ — Barcha topshiriqlar
+        - POST /submissions/{id}/approve/ — Mijoz qabul qiladi
+        - POST /submissions/{id}/request-revision/ — Mijoz qayta ishlashni so'raydi
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Topshiriq (Submission).
+        required: true
+      tags:
+      - freelance
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/freelance/submissions/{id}/approve/:
+    post:
+      operationId: freelance_submissions_approve_create
+      description: Mijoz ishni qabul qiladi → Pul Escrow dan frilanserga o'tadi.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Topshiriq (Submission).
+        required: true
+      tags:
+      - freelance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkSubmissionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WorkSubmissionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WorkSubmissionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkSubmission'
+          description: ''
+  /api/v1/freelance/submissions/{id}/request-revision/:
+    post:
+      operationId: freelance_submissions_request_revision_create
+      description: Mijoz qayta ishlashni so'raydi.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Topshiriq (Submission).
+        required: true
+      tags:
+      - freelance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevisionRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RevisionRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RevisionRequestRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevisionRequest'
+          description: ''
+  /api/v1/moderation/analytics/revenue/:
+    get:
+      operationId: moderation_analytics_revenue_list
+      description: 🔥 Admin Dashboard — Moliyaviy hisobotlar va platforma statistikasi.
+      summary: Kunlik tushum hisoboti
+      tags:
+      - '5. MODERATSIYA: Analitika (Analytics)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AnalyticsRevenue'
+          description: ''
+  /api/v1/moderation/analytics/stats/:
+    get:
+      operationId: moderation_analytics_stats_retrieve
+      description: 🔥 Admin Dashboard — Moliyaviy hisobotlar va platforma statistikasi.
+      summary: Platforma statistikasi
+      tags:
+      - '5. MODERATSIYA: Analitika (Analytics)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsPlatformStats'
+          description: ''
+  /api/v1/moderation/analytics/tokens/:
+    get:
+      operationId: moderation_analytics_tokens_retrieve
+      description: 🔥 Admin Dashboard — Moliyaviy hisobotlar va platforma statistikasi.
+      summary: Token aylanmasi statistikasi
+      tags:
+      - '5. MODERATSIYA: Analitika (Analytics)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsToken'
+          description: ''
+  /api/v1/moderation/disputes/:
+    get:
+      operationId: moderation_disputes_list
+      description: Adminlar uchun nizolarni ko'rish va hal qilish paneli.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - '5. MODERATSIYA: Nizolar (Disputes)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminDispute'
+          description: ''
+  /api/v1/moderation/disputes/{id}/:
+    get:
+      operationId: moderation_disputes_retrieve
+      description: Adminlar uchun nizolarni ko'rish va hal qilish paneli.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Nizo (Dispute).
+        required: true
+      tags:
+      - '5. MODERATSIYA: Nizolar (Disputes)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminDispute'
+          description: ''
+  /api/v1/moderation/disputes/{id}/resolve/:
+    post:
+      operationId: moderation_disputes_resolve_create
+      description: Adminlar uchun nizolarni ko'rish va hal qilish paneli.
+      summary: Nizoni hal qilish (Pulni tarqatish)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Nizo (Dispute).
+        required: true
+      tags:
+      - '5. MODERATSIYA: Nizolar (Disputes)'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminDisputeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminDisputeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminDisputeRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminDispute'
+          description: ''
+  /api/v1/moderation/kyc/:
+    get:
+      operationId: moderation_kyc_list
+      description: Adminlar uchun foydalanuvchi hujjatlarini tasdiqlash paneli.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - '5. MODERATSIYA: KYC (Hujjatlar)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminKYC'
+          description: ''
+  /api/v1/moderation/kyc/{id}/:
+    get:
+      operationId: moderation_kyc_retrieve
+      description: Adminlar uchun foydalanuvchi hujjatlarini tasdiqlash paneli.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Shaxs tasdiqlovi.
+        required: true
+      tags:
+      - '5. MODERATSIYA: KYC (Hujjatlar)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminKYC'
+          description: ''
+  /api/v1/moderation/kyc/{id}/review/:
+    post:
+      operationId: moderation_kyc_review_create
+      description: Adminlar uchun foydalanuvchi hujjatlarini tasdiqlash paneli.
+      summary: Hujjatni tasdiqlash yoki rad etish
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Shaxs tasdiqlovi.
+        required: true
+      tags:
+      - '5. MODERATSIYA: KYC (Hujjatlar)'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminKYCRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminKYCRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminKYCRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminKYC'
+          description: ''
+  /api/v1/moderation/users/:
+    get:
+      operationId: moderation_users_list
+      description: Adminlar uchun foydalanuvchilarni boshqarish (Ban qilish).
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - '5. MODERATSIYA: Foydalanuvchilar (Users)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminUser'
+          description: ''
+  /api/v1/moderation/users/{id}/:
+    get:
+      operationId: moderation_users_retrieve
+      description: Adminlar uchun foydalanuvchilarni boshqarish (Ban qilish).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this foydalanuvchi.
+        required: true
+      tags:
+      - '5. MODERATSIYA: Foydalanuvchilar (Users)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
+  /api/v1/moderation/users/{id}/ban/:
+    post:
+      operationId: moderation_users_ban_create
+      description: Adminlar uchun foydalanuvchilarni boshqarish (Ban qilish).
+      summary: Foydalanuvchini bloklash (Ban)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this foydalanuvchi.
+        required: true
+      tags:
+      - '5. MODERATSIYA: Foydalanuvchilar (Users)'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminUserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminUserRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
+  /api/v1/notifications/:
+    get:
+      operationId: notifications_list
+      description: Foydalanuvchi o'ziga kelgan xabarlarni ko'radi.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - 9. BILDIRISHNOMALAR
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/notifications/{id}/:
+    get:
+      operationId: notifications_retrieve
+      description: Foydalanuvchi o'ziga kelgan xabarlarni ko'radi.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this notification.
+        required: true
+      tags:
+      - 9. BILDIRISHNOMALAR
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/notifications/{id}/mark-read/:
+    post:
+      operationId: notifications_mark_read_create
+      description: Bitta aniq xabarni o'qildi deb belgilaydi.
+      summary: Bitta xabarni o'qildi deb belgilash
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this notification.
+        required: true
+      tags:
+      - 9. BILDIRISHNOMALAR
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/NotificationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/NotificationRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/notifications/mark-all-read/:
+    post:
+      operationId: notifications_mark_all_read_create
+      description: Userdagi barcha 'o'qilmagan' xabarlarni 'o'qildi' (is_read=True)
+        qilib qo'yadi.
+      summary: Barcha xabarlarni o'qildi deb belgilash
+      tags:
+      - 9. BILDIRISHNOMALAR
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/NotificationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/NotificationRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/notifications/unread-count/:
+    get:
+      operationId: notifications_unread_count_retrieve
+      description: Frontendda qo'ng'iroqcha (🔔) ustidagi raqam uchun.
+      summary: O'qilmagan xabarlar sonini olish
+      tags:
+      - 9. BILDIRISHNOMALAR
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/payments/buy-tokens/:
+    post:
+      operationId: payments_buy_tokens_create
+      description: Foydalanuvchi hisobidagi USD balans evaziga Time Token sotib oladi.
+      summary: Token sotib olish
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuyTokenRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BuyTokenRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BuyTokenRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuyToken'
+          description: ''
+  /api/v1/payments/create-payment-intent/:
+    post:
+      operationId: payments_create_payment_intent_create
+      description: Karta ma'lumotlarini kiritishdan oldin serverdan 'client_secret'
+        olish kerak.
+      summary: Stripe To'lov sessiyasini yaratish
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentIntentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentIntentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentIntentRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  client_secret:
+                    type: string
+          description: ''
+  /api/v1/payments/escrow/fund/:
+    post:
+      operationId: payments_escrow_fund_create
+      description: '1. MIJOZ: Ishni boshlash va pulni MUZLATISH.'
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContractActionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContractActionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContractActionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractAction'
+          description: ''
+  /api/v1/payments/escrow/release/:
+    post:
+      operationId: payments_escrow_release_create
+      description: '2. MIJOZ: Ishni qabul qilish va pulni FRILANSERGA O''TKAZISH.'
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContractActionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContractActionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContractActionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractAction'
+          description: ''
+  /api/v1/search/jobs/:
+    get:
+      operationId: search_jobs_list
+      description: |-
+        Ishlarni qidirish (Freelance Jobs).
+        Filtrlar:
+        - search: Sarlavha, Tavsif, Kerakli ko'nikmalar
+        - budget: Byudjet (min/max)
+        - status: Ish holati (OPEN, IN_PROGRESS)
+      parameters:
+      - in: query
+        name: budget__gte
+        schema:
+          type: number
+      - in: query
+        name: budget__lte
+        schema:
+          type: number
+      - in: query
+        name: deadline__gte
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: deadline__lte
+        schema:
+          type: string
+          format: date
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - search
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Job'
+          description: ''
+  /api/v1/search/users/:
+    get:
+      operationId: search_users_list
+      description: |-
+        Foydalanuvchilarni qidirish (Mentor yoki Frilanser).
+
+        Filtrlar:
+        - search: Ism, Familiya, Email, Bio (AI Vektor qidiruv bilan!)
+        - skills: Ko'nikmalar bo'yicha qidiruv (masalan: "Python, Django, React")
+        - location: Hudud
+        - availability: Mavjudlik jadvali
+        - barter_rating: Barter reytingi (masalan: 4.5 dan yuqori)
+        - freelance_rating: Frilans reytingi
+      parameters:
+      - in: query
+        name: barter_rating__gte
+        schema:
+          type: number
+          format: float
+      - in: query
+        name: barter_rating__lte
+        schema:
+          type: number
+          format: float
+      - in: query
+        name: freelance_rating__gte
+        schema:
+          type: number
+          format: float
+      - in: query
+        name: freelance_rating__lte
+        schema:
+          type: number
+          format: float
+      - in: query
+        name: is_kyc_verified
+        schema:
+          type: boolean
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - search
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/subscriptions/:
+    get:
+      operationId: subscriptions_list
+      description: |-
+        GET /api/v1/subscriptions/ -> Barcha tariflarni ko'rish
+        POST /api/v1/subscriptions/buy/ -> Sotib olish
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - subscriptions
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubscriptionPlan'
+          description: ''
+  /api/v1/subscriptions/{id}/:
+    get:
+      operationId: subscriptions_retrieve
+      description: |-
+        GET /api/v1/subscriptions/ -> Barcha tariflarni ko'rish
+        POST /api/v1/subscriptions/buy/ -> Sotib olish
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this subscription plan.
+        required: true
+      tags:
+      - subscriptions
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionPlan'
+          description: ''
+  /api/v1/subscriptions/buy/:
+    post:
+      operationId: subscriptions_buy_create
+      description: |-
+        GET /api/v1/subscriptions/ -> Barcha tariflarni ko'rish
+        POST /api/v1/subscriptions/buy/ -> Sotib olish
+      summary: Obuna sotib olish
+      tags:
+      - subscriptions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuySubscriptionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BuySubscriptionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BuySubscriptionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSubscription'
+          description: ''
+  /api/v1/subscriptions/my-subscription/:
+    get:
+      operationId: subscriptions_my_subscription_retrieve
+      description: Mening hozirgi obunam
+      tags:
+      - subscriptions
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionPlan'
+          description: ''
+  /api/v1/users/2fa/disable_2fa/:
+    post:
+      operationId: users_2fa_disable_2fa_create
+      summary: 3. 2FA ni o'chirish
+      tags:
+      - '7. XAVFSIZLIK: 2FA (Ikki Bosqichli Himoya)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/users/2fa/enable_2fa_confirm/:
+    post:
+      operationId: users_2fa_enable_2fa_confirm_create
+      summary: 2. QR kodni skanerlab, kodni tasdiqlash
+      tags:
+      - '7. XAVFSIZLIK: 2FA (Ikki Bosqichli Himoya)'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TwoFactorVerifyRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TwoFactorVerifyRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TwoFactorVerifyRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/users/2fa/enable_2fa_setup/:
+    post:
+      operationId: users_2fa_enable_2fa_setup_create
+      summary: 1. 2FA ni yoqish uchun QR kod olish
+      tags:
+      - '7. XAVFSIZLIK: 2FA (Ikki Bosqichli Himoya)'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/users/kyc/status/:
+    get:
+      operationId: users_kyc_status_retrieve
+      description: Foydalanuvchining KYC holati (PENDING, APPROVED, REJECTED)
+      summary: KYC holatini tekshirish
+      tags:
+      - '10. KYC: Shaxs Tasdiqlash'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KYC'
+          description: ''
+  /api/v1/users/kyc/submit/:
+    post:
+      operationId: users_kyc_submit_create
+      description: |-
+        Hujjat rasmi + Selfie yuklash.
+        AI avtomatik tekshirib, APPROVED yoki REJECTED qaytaradi.
+      summary: KYC hujjat va selfie yuklash (AI avtomatik tekshiradi)
+      tags:
+      - '10. KYC: Shaxs Tasdiqlash'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/KYCSubmitRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/KYCSubmitRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KYC'
+          description: ''
+  /api/v1/users/portfolio/:
+    get:
+      operationId: users_portfolio_list
+      description: |-
+        Foydalanuvchi o'z loyihalarini (GitHub, Behance) qo'shadi.
+        AI ularni tekshirib, baho beradi.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - '8. KARERA: Portfolio'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PortfolioProject'
+          description: ''
+    post:
+      operationId: users_portfolio_create
+      description: |-
+        Foydalanuvchi o'z loyihalarini (GitHub, Behance) qo'shadi.
+        AI ularni tekshirib, baho beradi.
+      tags:
+      - '8. KARERA: Portfolio'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortfolioProjectRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PortfolioProjectRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PortfolioProjectRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioProject'
+          description: ''
+  /api/v1/users/portfolio/{id}/:
+    get:
+      operationId: users_portfolio_retrieve
+      description: |-
+        Foydalanuvchi o'z loyihalarini (GitHub, Behance) qo'shadi.
+        AI ularni tekshirib, baho beradi.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this portfolio project.
+        required: true
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioProject'
+          description: ''
+    put:
+      operationId: users_portfolio_update
+      description: |-
+        Foydalanuvchi o'z loyihalarini (GitHub, Behance) qo'shadi.
+        AI ularni tekshirib, baho beradi.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this portfolio project.
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortfolioProjectRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PortfolioProjectRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PortfolioProjectRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioProject'
+          description: ''
+    patch:
+      operationId: users_portfolio_partial_update
+      description: |-
+        Foydalanuvchi o'z loyihalarini (GitHub, Behance) qo'shadi.
+        AI ularni tekshirib, baho beradi.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this portfolio project.
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPortfolioProjectRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPortfolioProjectRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPortfolioProjectRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioProject'
+          description: ''
+    delete:
+      operationId: users_portfolio_destroy
+      description: |-
+        Foydalanuvchi o'z loyihalarini (GitHub, Behance) qo'shadi.
+        AI ularni tekshirib, baho beradi.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this portfolio project.
+        required: true
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/users/reviews/:
+    get:
+      operationId: users_reviews_list
+      description: Sharh qoldirish va o'qish.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - '6. REPUTATSIYA: Izohlar va Baholar'
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+          description: ''
+    post:
+      operationId: users_reviews_create
+      description: Sharh qoldirish va o'qish.
+      tags:
+      - '6. REPUTATSIYA: Izohlar va Baholar'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: ''
+  /api/v1/users/reviews/{id}/:
+    get:
+      operationId: users_reviews_retrieve
+      description: Sharh qoldirish va o'qish.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this review.
+        required: true
+      tags:
+      - '6. REPUTATSIYA: Izohlar va Baholar'
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: ''
+    put:
+      operationId: users_reviews_update
+      description: Sharh qoldirish va o'qish.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this review.
+        required: true
+      tags:
+      - '6. REPUTATSIYA: Izohlar va Baholar'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: ''
+    patch:
+      operationId: users_reviews_partial_update
+      description: Sharh qoldirish va o'qish.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this review.
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedReviewRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedReviewRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedReviewRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: ''
+    delete:
+      operationId: users_reviews_destroy
+      description: Sharh qoldirish va o'qish.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this review.
+        required: true
+      tags:
+      - '6. REPUTATSIYA: Izohlar va Baholar'
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/users/search/:
+    get:
+      operationId: users_search_list
+      description: |-
+        Saytdagi barcha foydalanuvchilarni (Mentor/Frilanser) izlash va filtrlash uchun.
+        GET /api/v1/users/search/
+      parameters:
+      - in: query
+        name: is_kyc_verified
+        schema:
+          type: boolean
+      - in: query
+        name: is_premium
+        schema:
+          type: boolean
+      - in: query
+        name: min_barter_rating
+        schema:
+          type: number
+          format: float
+      - in: query
+        name: min_freelance_rating
+        schema:
+          type: number
+          format: float
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/users/search/{id}/:
+    get:
+      operationId: users_search_retrieve
+      description: |-
+        Saytdagi barcha foydalanuvchilarni (Mentor/Frilanser) izlash va filtrlash uchun.
+        GET /api/v1/users/search/
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this foydalanuvchi.
+        required: true
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/users/search/export_data/:
+    get:
+      operationId: users_search_export_data_retrieve
+      description: Foydalanuvchining barcha ma'lumotlarini JSON fayl qilib beradi.
+      summary: Mening ma'lumotlarimni yuklash (GDPR)
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/users/skill-tests/:
+    get:
+      operationId: users_skill_tests_list
+      description: Foydalanuvchi o'z bilimini tasdiqlash uchun test topshiradi.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - '8. KARERA: Skill Testlar'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SkillTest'
+          description: ''
+    post:
+      operationId: users_skill_tests_create
+      description: Foydalanuvchi o'z bilimini tasdiqlash uchun test topshiradi.
+      tags:
+      - '8. KARERA: Skill Testlar'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SkillTestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SkillTestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SkillTestRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillTest'
+          description: ''
+  /api/v1/users/skill-tests/{id}/:
+    get:
+      operationId: users_skill_tests_retrieve
+      description: Foydalanuvchi o'z bilimini tasdiqlash uchun test topshiradi.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this skill test.
+        required: true
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillTest'
+          description: ''
+    put:
+      operationId: users_skill_tests_update
+      description: Foydalanuvchi o'z bilimini tasdiqlash uchun test topshiradi.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this skill test.
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SkillTestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SkillTestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SkillTestRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillTest'
+          description: ''
+    patch:
+      operationId: users_skill_tests_partial_update
+      description: Foydalanuvchi o'z bilimini tasdiqlash uchun test topshiradi.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this skill test.
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSkillTestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSkillTestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSkillTestRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillTest'
+          description: ''
+    delete:
+      operationId: users_skill_tests_destroy
+      description: Foydalanuvchi o'z bilimini tasdiqlash uchun test topshiradi.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this skill test.
+        required: true
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+components:
+  schemas:
+    AIJobPrompt:
+      type: object
+      properties:
+        prompt:
+          type: string
+          description: 'Mijozning g''oyasi (Masalan: ''Menga Telegram bot kerak'')'
+          minLength: 10
+      required:
+      - prompt
+    AIJobPromptRequest:
+      type: object
+      properties:
+        prompt:
+          type: string
+          minLength: 10
+          description: 'Mijozning g''oyasi (Masalan: ''Menga Telegram bot kerak'')'
+      required:
+      - prompt
+    ActionEnum:
+      enum:
+      - APPROVE
+      - REJECT
+      type: string
+      description: |-
+        * `APPROVE` - APPROVE
+        * `REJECT` - REJECT
+    Activation:
+      type: object
+      properties:
+        uid:
+          type: string
+        token:
+          type: string
+      required:
+      - token
+      - uid
+    ActivationRequest:
+      type: object
+      properties:
+        uid:
+          type: string
+          minLength: 1
+        token:
+          type: string
+          minLength: 1
+      required:
+      - token
+      - uid
+    AdminDispute:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/DisputeStatusEnum'
+          readOnly: true
+        initiator_email:
+          type: string
+          readOnly: true
+        contract_title:
+          type: string
+          readOnly: true
+        contract_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        reason:
+          type: string
+          title: Nizo sababi (Da'vo matni)
+        evidences:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminDisputeEvidence'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan vaqt
+        resolution:
+          readOnly: true
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/DisputeResolutionEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        resolved_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Hal qilingan vaqt
+      required:
+      - contract_amount
+      - contract_title
+      - created_at
+      - evidences
+      - id
+      - initiator_email
+      - reason
+      - resolution
+      - resolved_at
+      - status
+    AdminDisputeEvidence:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        uploader_email:
+          type: string
+          readOnly: true
+        file:
+          type: string
+          format: uri
+          title: Dalil fayl
+        description:
+          type: string
+          title: Izoh
+          maxLength: 255
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan vaqt
+      required:
+      - created_at
+      - file
+      - id
+      - uploader_email
+    AdminDisputeEvidenceRequest:
+      type: object
+      properties:
+        file:
+          type: string
+          format: binary
+          title: Dalil fayl
+        description:
+          type: string
+          title: Izoh
+          maxLength: 255
+      required:
+      - file
+    AdminDisputeRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          title: Nizo sababi (Da'vo matni)
+        admin_comment:
+          type: string
+          writeOnly: true
+          minLength: 1
+        resolution_type:
+          allOf:
+          - $ref: '#/components/schemas/DisputeResolutionEnum'
+          writeOnly: true
+        refund_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          writeOnly: true
+        release_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          writeOnly: true
+      required:
+      - reason
+    AdminKYC:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        user_email:
+          type: string
+          readOnly: true
+        document_photo:
+          type: string
+          format: uri
+          title: Hujjat rasmi
+        selfie_photo:
+          type: string
+          format: uri
+          title: Selfie rasm
+        status:
+          allOf:
+          - $ref: '#/components/schemas/KYCStatusEnum'
+          readOnly: true
+          title: Holati
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan vaqt
+      required:
+      - created_at
+      - document_photo
+      - id
+      - selfie_photo
+      - status
+      - user_email
+    AdminKYCRequest:
+      type: object
+      properties:
+        document_photo:
+          type: string
+          format: binary
+          title: Hujjat rasmi
+        selfie_photo:
+          type: string
+          format: binary
+          title: Selfie rasm
+        rejection_reason:
+          type: string
+          writeOnly: true
+          minLength: 1
+        action:
+          allOf:
+          - $ref: '#/components/schemas/ActionEnum'
+          writeOnly: true
+      required:
+      - action
+      - document_photo
+      - selfie_photo
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          title: Email pochta
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        is_banned:
+          type: boolean
+        date_joined:
+          type: string
+          format: date-time
+        last_login:
+          type: string
+          format: date-time
+          nullable: true
+          title: Oxirgi kirish
+        kyc_status:
+          type: string
+          readOnly: true
+          default: NOT_SUBMITTED
+        wallet_balance:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+      required:
+      - email
+      - id
+      - is_banned
+      - kyc_status
+      - wallet_balance
+    AdminUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: Email pochta
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        is_banned:
+          type: boolean
+        date_joined:
+          type: string
+          format: date-time
+        last_login:
+          type: string
+          format: date-time
+          nullable: true
+          title: Oxirgi kirish
+      required:
+      - email
+      - is_banned
+    AnalyticsPlatformStats:
+      type: object
+      description: Platforma statistikasi uchun javob formati.
+      properties:
+        total_users:
+          type: integer
+        active_users_30d:
+          type: integer
+        total_contracts:
+          type: integer
+        completed_contracts:
+          type: integer
+        active_disputes:
+          type: integer
+        total_barter_sessions:
+          type: integer
+      required:
+      - active_disputes
+      - active_users_30d
+      - completed_contracts
+      - total_barter_sessions
+      - total_contracts
+      - total_users
+    AnalyticsRevenue:
+      type: object
+      description: Kunlik tushum hisoboti uchun javob formati.
+      properties:
+        date:
+          type: string
+          format: date
+        escrow_release:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        token_purchase:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        subscription:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+      required:
+      - date
+      - escrow_release
+      - subscription
+      - token_purchase
+      - total
+    AnalyticsToken:
+      type: object
+      description: Token aylanmasi statistikasi uchun javob formati.
+      properties:
+        total_tokens_in_circulation:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        total_tokens_burned:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        total_tokens_purchased:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+      required:
+      - total_tokens_burned
+      - total_tokens_in_circulation
+      - total_tokens_purchased
+    BarterSession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        mentor_detail:
+          allOf:
+          - $ref: '#/components/schemas/UserLite'
+          readOnly: true
+        student_detail:
+          allOf:
+          - $ref: '#/components/schemas/UserLite'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan vaqt
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yanilangan vaqt
+        is_delete:
+          type: boolean
+          title: O'chirilganmi
+        topic:
+          type: string
+          title: Dars mavzusi
+          maxLength: 255
+        scheduled_time:
+          type: string
+          format: date-time
+          title: Dars vaqti
+        duration_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: Davomiyligi (daqiqa)
+        status:
+          allOf:
+          - $ref: '#/components/schemas/BarterSessionStatusEnum'
+          readOnly: true
+        token_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+          title: Dars narxi (Token)
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Dars boshlangan vaqt
+        ended_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Dars tugagan vaqt
+        earned_tokens:
+          type: integer
+          readOnly: true
+          title: Ishlangan tokenlar
+        mentor:
+          type: integer
+        student:
+          type: integer
+          readOnly: true
+      required:
+      - created_at
+      - earned_tokens
+      - ended_at
+      - id
+      - mentor
+      - mentor_detail
+      - scheduled_time
+      - started_at
+      - status
+      - student
+      - student_detail
+      - token_cost
+      - topic
+      - updated_at
+    BarterSessionRequest:
+      type: object
+      properties:
+        is_delete:
+          type: boolean
+          title: O'chirilganmi
+        topic:
+          type: string
+          minLength: 1
+          title: Dars mavzusi
+          maxLength: 255
+        scheduled_time:
+          type: string
+          format: date-time
+          title: Dars vaqti
+        duration_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: Davomiyligi (daqiqa)
+        mentor:
+          type: integer
+      required:
+      - mentor
+      - scheduled_time
+      - topic
+    BarterSessionStatusEnum:
+      enum:
+      - PENDING
+      - SCHEDULED
+      - CONFIRMED
+      - IN_PROGRESS
+      - COMPLETED
+      - CANCELLED
+      type: string
+      description: |-
+        * `PENDING` - Kutilmoqda
+        * `SCHEDULED` - Rejalashtirilgan
+        * `CONFIRMED` - Tasdiqlandi
+        * `IN_PROGRESS` - Jarayonda (Dars boshlanganlar)
+        * `COMPLETED` - Tugallandi
+        * `CANCELLED` - Bekor qilindi
+    BuySubscriptionRequest:
+      type: object
+      properties:
+        plan_slug:
+          type: string
+          minLength: 1
+          pattern: ^[-a-zA-Z0-9_]+$
+      required:
+      - plan_slug
+    BuyToken:
+      type: object
+      properties:
+        token_amount:
+          type: integer
+          minimum: 1
+      required:
+      - token_amount
+    BuyTokenRequest:
+      type: object
+      properties:
+        token_amount:
+          type: integer
+          minimum: 1
+      required:
+      - token_amount
+    CallTypeEnum:
+      enum:
+      - VIDEO
+      - AUDIO
+      - SCREEN_SHARE
+      type: string
+      description: |-
+        * `VIDEO` - Video qo'ng'iroq
+        * `AUDIO` - Ovozli qo'ng'iroq
+        * `SCREEN_SHARE` - Ekran ulashish
+    ChatRoom:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          nullable: true
+          maxLength: 255
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+          readOnly: true
+        last_message:
+          allOf:
+          - $ref: '#/components/schemas/Message'
+          readOnly: true
+        unread_count:
+          type: integer
+          readOnly: true
+        is_group:
+          type: boolean
+          title: Guruh chatimi?
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+          title: Xona rasmi
+        avatar_url:
+          type: string
+          readOnly: true
+        can_add_participants:
+          type: boolean
+          title: Ishtirokchilar qo'shish mumkinmi?
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan vaqt
+      required:
+      - avatar_url
+      - created_at
+      - id
+      - last_message
+      - participants
+      - unread_count
+    ChatRoomRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+          maxLength: 255
+        is_group:
+          type: boolean
+          title: Guruh chatimi?
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+          title: Xona rasmi
+        can_add_participants:
+          type: boolean
+          title: Ishtirokchilar qo'shish mumkinmi?
+    Contract:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        job:
+          type: string
+          format: uuid
+        client:
+          type: integer
+        client_detail:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        freelancer:
+          type: integer
+        freelancer_detail:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        total_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          title: Umumiy summa
+        status:
+          $ref: '#/components/schemas/ContractStatusEnum'
+        milestones:
+          type: array
+          items:
+            $ref: '#/components/schemas/Milestone'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan vaqt
+      required:
+      - client
+      - client_detail
+      - created_at
+      - freelancer
+      - freelancer_detail
+      - id
+      - job
+      - milestones
+      - total_amount
+    ContractAction:
+      type: object
+      properties:
+        contract_id:
+          type: integer
+          description: Qaysi shartnoma uchun?
+      required:
+      - contract_id
+    ContractActionRequest:
+      type: object
+      properties:
+        contract_id:
+          type: integer
+          description: Qaysi shartnoma uchun?
+      required:
+      - contract_id
+    ContractStatusEnum:
+      enum:
+      - ACTIVE
+      - PENDING_APPROVAL
+      - COMPLETED
+      - IN_DISPUTE
+      type: string
+      description: |-
+        * `ACTIVE` - Faol
+        * `PENDING_APPROVAL` - Tasdiq kutilmoqda
+        * `COMPLETED` - Tugallangan
+        * `IN_DISPUTE` - Nizoli
+    CreateDispute:
+      type: object
+      properties:
+        contract_id:
+          type: integer
+        reason:
+          type: string
+          description: Nega nizo ochyapsiz?
+          minLength: 20
+      required:
+      - contract_id
+      - reason
+    CreateDisputeRequest:
+      type: object
+      properties:
+        contract_id:
+          type: integer
+        reason:
+          type: string
+          minLength: 20
+          description: Nega nizo ochyapsiz?
+      required:
+      - contract_id
+      - reason
+    CreatePaymentIntentRequest:
+      type: object
+      properties:
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        description:
+          type: string
+          minLength: 1
+          default: Balansni to'ldirish
+          maxLength: 255
+      required:
+      - amount
+    DisputeResolutionEnum:
+      enum:
+      - REFUND_CLIENT
+      - RELEASE_FREELANCER
+      - SPLIT
+      type: string
+      description: |-
+        * `REFUND_CLIENT` - Mijozga 100% qaytarish (Ish bajarilmadi)
+        * `RELEASE_FREELANCER` - Frilanserga 100% berish (Ish to'liq)
+        * `SPLIT` - Bo'lib berish (Ish qisman bajarildi)
+    DisputeStatusEnum:
+      enum:
+      - OPEN
+      - UNDER_REVIEW
+      - RESOLVED
+      - CANCELLED
+      type: string
+      description: |-
+        * `OPEN` - Ochiq (Admin ko'rib chiqmoqda)
+        * `UNDER_REVIEW` - Dalillar o'rganilmoqda
+        * `RESOLVED` - Hal qilindi (Yopilgan)
+        * `CANCELLED` - Bekor qilindi (Tomonlar o'zaro kelishdi)
+    DurationEnum:
+      enum:
+      - monthly
+      - yearly
+      type: string
+      description: |-
+        * `monthly` - 1 Oy
+        * `yearly` - 1 Yil
+    FileUploadMessageTypeEnum:
+      enum:
+      - IMAGE
+      - FILE
+      - AUDIO
+      type: string
+      description: |-
+        * `IMAGE` - IMAGE
+        * `FILE` - FILE
+        * `AUDIO` - AUDIO
+    FileUploadRequest:
+      type: object
+      description: Chat xonasiga fayl yuklash uchun
+      properties:
+        room_id:
+          type: string
+          format: uuid
+        file:
+          type: string
+          format: binary
+        message_type:
+          allOf:
+          - $ref: '#/components/schemas/FileUploadMessageTypeEnum'
+          default: FILE
+      required:
+      - file
+      - room_id
+    ICEServer:
+      type: object
+      description: STUN/TURN server konfiguratsiyasi
+      properties:
+        urls:
+          type: array
+          items:
+            type: string
+        username:
+          type: string
+        credential:
+          type: string
+      required:
+      - urls
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        client:
+          type: integer
+          readOnly: true
+        client_detail:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        title:
+          type: string
+          title: Loyiha nomi
+          maxLength: 255
+        description:
+          type: string
+          title: Loyiha haqida to'liq ma'lumot (TZ)
+        budget:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          nullable: true
+          title: Budget ($)
+        deadline:
+          type: string
+          format: date
+          nullable: true
+          title: Topshiriq muddati
+        status:
+          allOf:
+          - $ref: '#/components/schemas/JobStatusEnum'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan vaqt
+      required:
+      - client
+      - client_detail
+      - created_at
+      - description
+      - id
+      - status
+      - title
+    JobRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: Loyiha nomi
+          maxLength: 255
+        description:
+          type: string
+          minLength: 1
+          title: Loyiha haqida to'liq ma'lumot (TZ)
+        budget:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          nullable: true
+          title: Budget ($)
+        deadline:
+          type: string
+          format: date
+          nullable: true
+          title: Topshiriq muddati
+      required:
+      - description
+      - title
+    JobStatusEnum:
+      enum:
+      - DRAFT
+      - OPEN
+      - IN_PROGRESS
+      - COMPLETED
+      - CANCELLED
+      type: string
+      description: |-
+        * `DRAFT` - Qoralama (AI yaratdi)
+        * `OPEN` - Ochiq (Frilanser qidirilmoqda)
+        * `IN_PROGRESS` - Jarayonda
+        * `COMPLETED` - Tugallangan
+        * `CANCELLED` - Bekor qilingan
+    KYC:
+      type: object
+      description: KYC holati va ma'lumotlarini ko'rsatish
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        document_photo:
+          type: string
+          format: uri
+          title: Hujjat rasmi
+        selfie_photo:
+          type: string
+          format: uri
+          title: Selfie rasm
+        status:
+          allOf:
+          - $ref: '#/components/schemas/KYCStatusEnum'
+          readOnly: true
+          title: Holati
+        rejection_reason:
+          type: string
+          readOnly: true
+          nullable: true
+          title: Rad etilish sababi
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan vaqt
+      required:
+      - created_at
+      - document_photo
+      - id
+      - rejection_reason
+      - selfie_photo
+      - status
+    KYCStatusEnum:
+      enum:
+      - PENDING
+      - APPROVED
+      - REJECTED
+      type: string
+      description: |-
+        * `PENDING` - Kutilmoqda
+        * `APPROVED` - Tasdiqlandi
+        * `REJECTED` - Rad etildi
+    KYCSubmitRequest:
+      type: object
+      description: KYC hujjat va selfie yuklash uchun
+      properties:
+        document_photo:
+          type: string
+          format: binary
+          description: Pasport, ID karta yoki haydovchilik guvohnomasi rasmi
+        selfie_photo:
+          type: string
+          format: binary
+          description: Hujjat bilan birga tushgan selfie rasm
+      required:
+      - document_photo
+      - selfie_photo
+    MatchmakingRequest:
+      type: object
+      description: AI Matchmaking uchun input serializer
+      properties:
+        skills_i_have:
+          type: string
+          minLength: 2
+          description: 'Men bilgan ko''nikmalar (masalan: ''Python, Django, REST API'')'
+        skills_i_want:
+          type: string
+          minLength: 2
+          description: 'O''rganmoqchi bo''lgan ko''nikmalar (masalan: ''Dizayn, Figma,
+            UI/UX'')'
+      required:
+      - skills_i_have
+      - skills_i_want
+    MentorshipRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        mentor_detail:
+          allOf:
+          - $ref: '#/components/schemas/UserLite'
+          readOnly: true
+        student_detail:
+          allOf:
+          - $ref: '#/components/schemas/UserLite'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan vaqt
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yanilangan vaqt
+        is_delete:
+          type: boolean
+          title: O'chirilganmi
+        message:
+          type: string
+          title: Xabar (Maqsad)
+        proposed_schedule:
+          title: Taklif qilingan vaqtlar
+        duration_months:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: Davomiyligi (Oy)
+        status:
+          allOf:
+          - $ref: '#/components/schemas/MentorshipRequestStatusEnum'
+          readOnly: true
+        mentor:
+          type: integer
+        student:
+          type: integer
+          readOnly: true
+        chat_room:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+      required:
+      - chat_room
+      - created_at
+      - id
+      - mentor
+      - mentor_detail
+      - message
+      - status
+      - student
+      - student_detail
+      - updated_at
+    MentorshipRequestRequest:
+      type: object
+      properties:
+        is_delete:
+          type: boolean
+          title: O'chirilganmi
+        message:
+          type: string
+          minLength: 1
+          title: Xabar (Maqsad)
+        proposed_schedule:
+          title: Taklif qilingan vaqtlar
+        duration_months:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: Davomiyligi (Oy)
+        mentor:
+          type: integer
+      required:
+      - mentor
+      - message
+    MentorshipRequestStatusEnum:
+      enum:
+      - PENDING
+      - NEGOTIATING
+      - ACCEPTED
+      - REJECTED
+      - COMPLETED
+      type: string
+      description: |-
+        * `PENDING` - Taklif yuborildi
+        * `NEGOTIATING` - Vaqt kelishilmoqda
+        * `ACCEPTED` - Qabul qilindi (Obuna faol)
+        * `REJECTED` - Rad etildi
+        * `COMPLETED` - Obuna tugadi
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        room:
+          type: string
+          format: uuid
+        sender:
+          type: integer
+          readOnly: true
+        sender_detail:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        content:
+          type: string
+        message_type:
+          $ref: '#/components/schemas/MessageMessageTypeEnum'
+        file:
+          type: string
+          format: uri
+          nullable: true
+          title: Fayl (max 50MB)
+        is_read:
+          type: boolean
+          readOnly: true
+        read_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan vaqt
+      required:
+      - created_at
+      - id
+      - is_read
+      - read_at
+      - room
+      - sender
+      - sender_detail
+    MessageMessageTypeEnum:
+      enum:
+      - TEXT
+      - IMAGE
+      - FILE
+      - AUDIO
+      type: string
+      description: |-
+        * `TEXT` - Matn
+        * `IMAGE` - Rasm
+        * `FILE` - Fayl
+        * `AUDIO` - Audio
+    MessageRequest:
+      type: object
+      properties:
+        room:
+          type: string
+          format: uuid
+        content:
+          type: string
+        message_type:
+          $ref: '#/components/schemas/MessageMessageTypeEnum'
+        file:
+          type: string
+          format: binary
+          nullable: true
+          title: Fayl (max 50MB)
+      required:
+      - room
+    Milestone:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        contract:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          title: 'Bosqich nomi (masalan: Dizayn qismi)'
+          maxLength: 255
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          title: Bosqich summasi
+        status:
+          allOf:
+          - $ref: '#/components/schemas/MilestoneStatusEnum'
+          readOnly: true
+        due_date:
+          type: string
+          format: date
+          title: Bosqich muddati
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan vaqt
+      required:
+      - amount
+      - contract
+      - created_at
+      - due_date
+      - id
+      - status
+      - title
+    MilestoneRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: 'Bosqich nomi (masalan: Dizayn qismi)'
+          maxLength: 255
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          title: Bosqich summasi
+        due_date:
+          type: string
+          format: date
+          title: Bosqich muddati
+      required:
+      - amount
+      - due_date
+      - title
+    MilestoneStatusEnum:
+      enum:
+      - PENDING
+      - FUNDED
+      - COMPLETED
+      type: string
+      description: |-
+        * `PENDING` - Kutilmoqda (Pul to'lanmagan)
+        * `FUNDED` - Muzlatildi (Escrow - Ish boshlash mumkin)
+        * `COMPLETED` - To'landi (Freelancerga tushdi)
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        message:
+          type: string
+        notification_type:
+          $ref: '#/components/schemas/NotificationTypeEnum'
+        is_read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan vaqt
+      required:
+      - created_at
+      - id
+      - message
+      - title
+    NotificationRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        message:
+          type: string
+          minLength: 1
+        notification_type:
+          $ref: '#/components/schemas/NotificationTypeEnum'
+        is_read:
+          type: boolean
+      required:
+      - message
+      - title
+    NotificationTypeEnum:
+      enum:
+      - SYSTEM
+      - PAYMENT
+      - DISPUTE
+      - CHAT
+      - BARTER
+      - FREELANCE
+      type: string
+      description: |-
+        * `SYSTEM` - Tizim xabari
+        * `PAYMENT` - To'lov va Moliya
+        * `DISPUTE` - Nizo va Moderatsiya
+        * `CHAT` - Yangi xabar
+        * `BARTER` - Barter taklifi
+        * `FREELANCE` - Ish taklifi
+    NullEnum:
+      enum:
+      - null
+    PasswordResetConfirm:
+      type: object
+      properties:
+        uid:
+          type: string
+        token:
+          type: string
+        new_password:
+          type: string
+      required:
+      - new_password
+      - token
+      - uid
+    PasswordResetConfirmRequest:
+      type: object
+      properties:
+        uid:
+          type: string
+          minLength: 1
+        token:
+          type: string
+          minLength: 1
+        new_password:
+          type: string
+          minLength: 1
+      required:
+      - new_password
+      - token
+      - uid
+    PatchedBarterSessionRequest:
+      type: object
+      properties:
+        is_delete:
+          type: boolean
+          title: O'chirilganmi
+        topic:
+          type: string
+          minLength: 1
+          title: Dars mavzusi
+          maxLength: 255
+        scheduled_time:
+          type: string
+          format: date-time
+          title: Dars vaqti
+        duration_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: Davomiyligi (daqiqa)
+        mentor:
+          type: integer
+    PatchedChatRoomRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+          maxLength: 255
+        is_group:
+          type: boolean
+          title: Guruh chatimi?
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+          title: Xona rasmi
+        can_add_participants:
+          type: boolean
+          title: Ishtirokchilar qo'shish mumkinmi?
+    PatchedJobRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: Loyiha nomi
+          maxLength: 255
+        description:
+          type: string
+          minLength: 1
+          title: Loyiha haqida to'liq ma'lumot (TZ)
+        budget:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          nullable: true
+          title: Budget ($)
+        deadline:
+          type: string
+          format: date
+          nullable: true
+          title: Topshiriq muddati
+    PatchedMentorshipRequestRequest:
+      type: object
+      properties:
+        is_delete:
+          type: boolean
+          title: O'chirilganmi
+        message:
+          type: string
+          minLength: 1
+          title: Xabar (Maqsad)
+        proposed_schedule:
+          title: Taklif qilingan vaqtlar
+        duration_months:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: Davomiyligi (Oy)
+        mentor:
+          type: integer
+    PatchedMilestoneRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: 'Bosqich nomi (masalan: Dizayn qismi)'
+          maxLength: 255
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          title: Bosqich summasi
+        due_date:
+          type: string
+          format: date
+          title: Bosqich muddati
+    PatchedPortfolioProjectRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: Loyiha nomi
+          maxLength: 255
+        description:
+          type: string
+          minLength: 1
+          title: Loyiha haqida
+        project_url:
+          type: string
+          format: uri
+          minLength: 1
+          title: Loyiha havolasi (GitHub, Behance)
+          maxLength: 200
+    PatchedProposalRequest:
+      type: object
+      properties:
+        job:
+          type: string
+          format: uuid
+        cover_letter:
+          type: string
+          minLength: 1
+          title: Nega aynan men? (Xat)
+        proposed_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          title: So'ralyotgan narx ($)
+    PatchedReviewRequest:
+      type: object
+      properties:
+        receiver:
+          type: integer
+          title: Baho oluvchi
+        review_type:
+          allOf:
+          - $ref: '#/components/schemas/ReviewTypeEnum'
+          title: Baho turi
+        rating:
+          type: integer
+          maximum: 5
+          minimum: 1
+          title: Yulduzcha (1-5)
+        comment:
+          type: string
+          minLength: 1
+          title: Izoh
+        session:
+          type: string
+          format: uuid
+          nullable: true
+        contract:
+          type: string
+          format: uuid
+          nullable: true
+    PatchedSkillTestRequest:
+      type: object
+      properties:
+        skill_name:
+          type: string
+          minLength: 1
+          title: Ko'nikma nomi (Python, Design)
+          maxLength: 100
+    PatchedUserRequest:
+      type: object
+      description: Foydalanuvchi ma'lumotlarini ko'rsatish uchun serializer
+      properties:
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+          title: Profil rasmi
+        bio:
+          type: string
+          nullable: true
+          description: Foydalanuvchi o'zi, tajribasi va nima qila olishi haqida
+        is_kyc_verified:
+          type: boolean
+          title: Shaxsi tasdiqlanganmi?
+        is_two_factor_enabled:
+          type: boolean
+          title: 2FA yoqilganmi?
+        is_staff:
+          type: boolean
+          title: Staff status
+          description: Designates whether the user can log into this admin site.
+        skills_offered:
+          title: O'rgata oladigan bilimlar
+          description: 'Masalan: [''Python'', ''Django'']'
+        skills_wanted:
+          title: O'rganmoqchi bo'lgan narsalar
+          description: 'Masalan: [''Design'', ''English'']'
+        location:
+          type: string
+          nullable: true
+          title: Joylashuv
+          description: 'Masalan: Toshkent, Uzbekistan'
+          maxLength: 255
+        availability:
+          type: string
+          nullable: true
+          title: Mavjudlik jadvali
+          description: 'Masalan: Dushanba-Juma, 9:00-18:00'
+          maxLength: 255
+    PatchedWorkSubmissionRequest:
+      type: object
+      properties:
+        contract:
+          type: string
+          format: uuid
+        file:
+          type: string
+          format: binary
+          nullable: true
+          title: Topshiriq fayli
+        link:
+          type: string
+          format: uri
+          title: Tashqi havola (Figma, GitHub, Drive)
+          maxLength: 500
+        comment:
+          type: string
+          minLength: 1
+          title: Frilanser izohi
+          description: 'Masalan: ''Mana aka, ishingiz tayyor, tekshirib oling'''
+    PlatformSettings:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        freelance_commission_default:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          title: Freelance Komissiyasi (Oddiy user, %)
+        freelance_commission_pro:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          title: Freelance Komissiyasi (PRO user, %)
+        barter_commission:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          title: Barter Komissiyasi (Token)
+        premium_job_cost:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: Premium E'lon narxi (Token)
+        max_submission_file_mb:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Maks fayl hajmi (MB)
+        token_reactivation_fee:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Token reaktivatsiya jarimasi (Token)
+        max_dispute_evidence_mb:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Maks nizo dalil hajmi (MB)
+        media_retention_days:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Eski media saqlash muddati (kun)
+      required:
+      - id
+    PortfolioProject:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          title: Loyiha nomi
+          maxLength: 255
+        description:
+          type: string
+          title: Loyiha haqida
+        project_url:
+          type: string
+          format: uri
+          title: Loyiha havolasi (GitHub, Behance)
+          maxLength: 200
+        is_verified:
+          type: boolean
+          readOnly: true
+          title: AI tomonidan tasdiqlanganmi?
+        ai_score:
+          type: integer
+          readOnly: true
+          title: AI bahosi (0-100)
+        ai_feedback:
+          type: string
+          readOnly: true
+          nullable: true
+          title: AI xulosasi
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan vaqt
+      required:
+      - ai_feedback
+      - ai_score
+      - created_at
+      - description
+      - id
+      - is_verified
+      - project_url
+      - title
+    PortfolioProjectRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: Loyiha nomi
+          maxLength: 255
+        description:
+          type: string
+          minLength: 1
+          title: Loyiha haqida
+        project_url:
+          type: string
+          format: uri
+          minLength: 1
+          title: Loyiha havolasi (GitHub, Behance)
+          maxLength: 200
+      required:
+      - description
+      - project_url
+      - title
+    Proposal:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        job:
+          type: string
+          format: uuid
+        freelancer:
+          type: integer
+          readOnly: true
+        freelancer_detail:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        cover_letter:
+          type: string
+          title: Nega aynan men? (Xat)
+        proposed_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          title: So'ralyotgan narx ($)
+        status:
+          allOf:
+          - $ref: '#/components/schemas/ProposalStatusEnum'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan vaqt
+      required:
+      - cover_letter
+      - created_at
+      - freelancer
+      - freelancer_detail
+      - id
+      - job
+      - proposed_price
+      - status
+    ProposalRequest:
+      type: object
+      properties:
+        job:
+          type: string
+          format: uuid
+        cover_letter:
+          type: string
+          minLength: 1
+          title: Nega aynan men? (Xat)
+        proposed_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          title: So'ralyotgan narx ($)
+      required:
+      - cover_letter
+      - job
+      - proposed_price
+    ProposalStatusEnum:
+      enum:
+      - PENDING
+      - ACCEPTED
+      - REJECTED
+      type: string
+      description: |-
+        * `PENDING` - Kutilmoqda
+        * `ACCEPTED` - Qabul qilindi
+        * `REJECTED` - Rad etildi
+    ResolveDispute:
+      type: object
+      properties:
+        dispute_id:
+          type: integer
+        resolution:
+          $ref: '#/components/schemas/ResolveDisputeResolutionEnum'
+        refund_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        release_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+      required:
+      - dispute_id
+      - resolution
+    ResolveDisputeRequest:
+      type: object
+      properties:
+        dispute_id:
+          type: integer
+        resolution:
+          $ref: '#/components/schemas/ResolveDisputeResolutionEnum'
+        refund_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        release_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+      required:
+      - dispute_id
+      - resolution
+    ResolveDisputeResolutionEnum:
+      enum:
+      - REFUND_CLIENT
+      - RELEASE_FREELANCER
+      - SPLIT
+      type: string
+      description: |-
+        * `REFUND_CLIENT` - Mijozga qaytarish
+        * `RELEASE_FREELANCER` - Frilanserga berish
+        * `SPLIT` - Bo'lish
+    ResumeAnalyzer:
+      type: object
+      description: CV tahlil qilish uchun input
+      properties:
+        resume_text:
+          type: string
+          description: CV matni (Kamida 50 belgi)
+          minLength: 50
+      required:
+      - resume_text
+    ResumeAnalyzerRequest:
+      type: object
+      description: CV tahlil qilish uchun input
+      properties:
+        resume_text:
+          type: string
+          minLength: 50
+          description: CV matni (Kamida 50 belgi)
+      required:
+      - resume_text
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        reviewer:
+          type: integer
+          readOnly: true
+          title: Baho beruvchi
+        receiver:
+          type: integer
+          title: Baho oluvchi
+        review_type:
+          allOf:
+          - $ref: '#/components/schemas/ReviewTypeEnum'
+          title: Baho turi
+        rating:
+          type: integer
+          maximum: 5
+          minimum: 1
+          title: Yulduzcha (1-5)
+        comment:
+          type: string
+          title: Izoh
+        session:
+          type: string
+          format: uuid
+          nullable: true
+        contract:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan vaqt
+      required:
+      - comment
+      - created_at
+      - id
+      - rating
+      - receiver
+      - review_type
+      - reviewer
+    ReviewRequest:
+      type: object
+      properties:
+        receiver:
+          type: integer
+          title: Baho oluvchi
+        review_type:
+          allOf:
+          - $ref: '#/components/schemas/ReviewTypeEnum'
+          title: Baho turi
+        rating:
+          type: integer
+          maximum: 5
+          minimum: 1
+          title: Yulduzcha (1-5)
+        comment:
+          type: string
+          minLength: 1
+          title: Izoh
+        session:
+          type: string
+          format: uuid
+          nullable: true
+        contract:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - comment
+      - rating
+      - receiver
+      - review_type
+    ReviewTypeEnum:
+      enum:
+      - BARTER
+      - FREELANCE
+      type: string
+      description: |-
+        * `BARTER` - Barter
+        * `FREELANCE` - Freelance
+    RevisionRequest:
+      type: object
+      description: Mijoz qayta ishlash so'raganda feedback beradi.
+      properties:
+        feedback:
+          type: string
+          description: 'Nima uchun qayta ishlash kerak? (Masalan: ''Rangni o''zgartiring'')'
+          minLength: 5
+      required:
+      - feedback
+    RevisionRequestRequest:
+      type: object
+      description: Mijoz qayta ishlash so'raganda feedback beradi.
+      properties:
+        feedback:
+          type: string
+          minLength: 5
+          description: 'Nima uchun qayta ishlash kerak? (Masalan: ''Rangni o''zgartiring'')'
+      required:
+      - feedback
+    SendEmailReset:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+      - email
+    SendEmailResetRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+      required:
+      - email
+    SetPassword:
+      type: object
+      properties:
+        new_password:
+          type: string
+        current_password:
+          type: string
+      required:
+      - current_password
+      - new_password
+    SetPasswordRequest:
+      type: object
+      properties:
+        new_password:
+          type: string
+          minLength: 1
+        current_password:
+          type: string
+          minLength: 1
+      required:
+      - current_password
+      - new_password
+    SetUsername:
+      type: object
+      properties:
+        current_password:
+          type: string
+        new_email:
+          type: string
+          format: email
+          title: Email pochta
+          maxLength: 254
+      required:
+      - current_password
+      - new_email
+    SetUsernameRequest:
+      type: object
+      properties:
+        current_password:
+          type: string
+          minLength: 1
+        new_email:
+          type: string
+          format: email
+          minLength: 1
+          title: Email pochta
+          maxLength: 254
+      required:
+      - current_password
+      - new_email
+    SkillTest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        skill_name:
+          type: string
+          title: Ko'nikma nomi (Python, Design)
+          maxLength: 100
+        score:
+          type: integer
+          readOnly: true
+          title: To'plagan ball (0-100)
+        passed:
+          type: boolean
+          readOnly: true
+          title: O'tdimi?
+        certificate_url:
+          type: string
+          format: uri
+          readOnly: true
+          nullable: true
+          title: Sertifikat havolasi
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan vaqt
+      required:
+      - certificate_url
+      - created_at
+      - id
+      - passed
+      - score
+      - skill_name
+    SkillTestRequest:
+      type: object
+      properties:
+        skill_name:
+          type: string
+          minLength: 1
+          title: Ko'nikma nomi (Python, Design)
+          maxLength: 100
+      required:
+      - skill_name
+    SubscriptionPlan:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        slug:
+          type: string
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        duration:
+          $ref: '#/components/schemas/DurationEnum'
+        features: {}
+        description:
+          type: string
+      required:
+      - name
+      - price
+      - slug
+    TokenObtainPair:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - refresh
+    TokenObtainPairRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+      required:
+      - refresh
+    TokenVerifyRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - token
+    TwoFactorVerifyRequest:
+      type: object
+      description: 2FA kodini tasdiqlash.
+      properties:
+        code:
+          type: string
+          minLength: 6
+          maxLength: 6
+      required:
+      - code
+    User:
+      type: object
+      description: Foydalanuvchi ma'lumotlarini ko'rsatish uchun serializer
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+          title: Email pochta
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+          title: Profil rasmi
+        avatar_url:
+          type: string
+          readOnly: true
+        bio:
+          type: string
+          nullable: true
+          description: Foydalanuvchi o'zi, tajribasi va nima qila olishi haqida
+        barter_rating:
+          type: number
+          format: double
+          readOnly: true
+          title: Barter ratingi
+        freelance_rating:
+          type: number
+          format: double
+          readOnly: true
+          title: Freelace ratingi
+        streak_days:
+          type: integer
+          readOnly: true
+          title: Ketma-ket kirish kunlari
+        last_activity:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        is_kyc_verified:
+          type: boolean
+          title: Shaxsi tasdiqlanganmi?
+        is_two_factor_enabled:
+          type: boolean
+          title: 2FA yoqilganmi?
+        is_staff:
+          type: boolean
+          title: Staff status
+          description: Designates whether the user can log into this admin site.
+        skills_offered:
+          title: O'rgata oladigan bilimlar
+          description: 'Masalan: [''Python'', ''Django'']'
+        skills_wanted:
+          title: O'rganmoqchi bo'lgan narsalar
+          description: 'Masalan: [''Design'', ''English'']'
+        location:
+          type: string
+          nullable: true
+          title: Joylashuv
+          description: 'Masalan: Toshkent, Uzbekistan'
+          maxLength: 255
+        availability:
+          type: string
+          nullable: true
+          title: Mavjudlik jadvali
+          description: 'Masalan: Dushanba-Juma, 9:00-18:00'
+          maxLength: 255
+        skill_tests:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkillTest'
+          readOnly: true
+        portfolio_projects:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioProject'
+          readOnly: true
+      required:
+      - avatar_url
+      - barter_rating
+      - email
+      - freelance_rating
+      - id
+      - last_activity
+      - portfolio_projects
+      - skill_tests
+      - streak_days
+    UserCreatePasswordRetype:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email pochta
+          maxLength: 254
+        id:
+          type: integer
+          readOnly: true
+        re_password:
+          type: string
+      required:
+      - email
+      - id
+      - re_password
+    UserCreatePasswordRetypeRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: Email pochta
+          maxLength: 254
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        re_password:
+          type: string
+          minLength: 1
+      required:
+      - email
+      - password
+      - re_password
+    UserLite:
+      type: object
+      description: Qisqartirilgan User ma'lumotlari (BarterSession kabi joylarda nested
+        qilib ishlatish uchun)
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          title: Email pochta
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+          title: Profil rasmi
+        avatar_url:
+          type: string
+          readOnly: true
+        barter_rating:
+          type: number
+          format: double
+          maximum: 5.0
+          minimum: 0.0
+          title: Barter ratingi
+        trust_score:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          title: Trust Score (Ishonch darajasi)
+      required:
+      - avatar_url
+      - email
+      - id
+    UserLiteRequest:
+      type: object
+      description: Qisqartirilgan User ma'lumotlari (BarterSession kabi joylarda nested
+        qilib ishlatish uchun)
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: Email pochta
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+          title: Profil rasmi
+        barter_rating:
+          type: number
+          format: double
+          maximum: 5.0
+          minimum: 0.0
+          title: Barter ratingi
+        trust_score:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          title: Trust Score (Ishonch darajasi)
+      required:
+      - email
+    UserRequest:
+      type: object
+      description: Foydalanuvchi ma'lumotlarini ko'rsatish uchun serializer
+      properties:
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+          title: Profil rasmi
+        bio:
+          type: string
+          nullable: true
+          description: Foydalanuvchi o'zi, tajribasi va nima qila olishi haqida
+        is_kyc_verified:
+          type: boolean
+          title: Shaxsi tasdiqlanganmi?
+        is_two_factor_enabled:
+          type: boolean
+          title: 2FA yoqilganmi?
+        is_staff:
+          type: boolean
+          title: Staff status
+          description: Designates whether the user can log into this admin site.
+        skills_offered:
+          title: O'rgata oladigan bilimlar
+          description: 'Masalan: [''Python'', ''Django'']'
+        skills_wanted:
+          title: O'rganmoqchi bo'lgan narsalar
+          description: 'Masalan: [''Design'', ''English'']'
+        location:
+          type: string
+          nullable: true
+          title: Joylashuv
+          description: 'Masalan: Toshkent, Uzbekistan'
+          maxLength: 255
+        availability:
+          type: string
+          nullable: true
+          title: Mavjudlik jadvali
+          description: 'Masalan: Dushanba-Juma, 9:00-18:00'
+          maxLength: 255
+    UserSubscription:
+      type: object
+      properties:
+        plan_name:
+          type: string
+          readOnly: true
+        start_date:
+          type: string
+          format: date-time
+          readOnly: true
+        end_date:
+          type: string
+          format: date-time
+        is_active:
+          type: boolean
+        is_valid:
+          type: boolean
+          description: Hozir obuna kuchidami
+          readOnly: true
+      required:
+      - end_date
+      - is_valid
+      - plan_name
+      - start_date
+    UsernameResetConfirm:
+      type: object
+      properties:
+        new_email:
+          type: string
+          format: email
+          title: Email pochta
+          maxLength: 254
+      required:
+      - new_email
+    UsernameResetConfirmRequest:
+      type: object
+      properties:
+        new_email:
+          type: string
+          format: email
+          minLength: 1
+          title: Email pochta
+          maxLength: 254
+      required:
+      - new_email
+    VideoCall:
+      type: object
+      description: Qo'ng'iroq tarixini ko'rsatish
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        caller:
+          type: integer
+          readOnly: true
+          title: Qo'ng'iroq qiluvchi
+        caller_detail:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        callee:
+          type: integer
+          title: Qabul qiluvchi
+        callee_detail:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        room:
+          type: string
+          format: uuid
+          title: Chat xonasi
+        call_type:
+          $ref: '#/components/schemas/CallTypeEnum'
+        status:
+          allOf:
+          - $ref: '#/components/schemas/VideoCallStatusEnum'
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Boshlangan vaqt
+        ended_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Tugagan vaqt
+        duration:
+          type: string
+          readOnly: true
+        duration_seconds:
+          type: integer
+          readOnly: true
+        caller_video_enabled:
+          type: boolean
+          readOnly: true
+        caller_audio_enabled:
+          type: boolean
+          readOnly: true
+        callee_video_enabled:
+          type: boolean
+          readOnly: true
+        callee_audio_enabled:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan vaqt
+      required:
+      - callee
+      - callee_audio_enabled
+      - callee_detail
+      - callee_video_enabled
+      - caller
+      - caller_audio_enabled
+      - caller_detail
+      - caller_video_enabled
+      - created_at
+      - duration
+      - duration_seconds
+      - ended_at
+      - id
+      - room
+      - started_at
+      - status
+    VideoCallStatusEnum:
+      enum:
+      - RINGING
+      - ACTIVE
+      - ENDED
+      - MISSED
+      - REJECTED
+      type: string
+      description: |-
+        * `RINGING` - Jiringlamoqda
+        * `ACTIVE` - Faol
+        * `ENDED` - Tugadi
+        * `MISSED` - Javobsiz
+        * `REJECTED` - Rad etildi
+    WorkSubmission:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        contract:
+          type: string
+          format: uuid
+        freelancer:
+          type: integer
+          readOnly: true
+        freelancer_detail:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        file:
+          type: string
+          format: uri
+          nullable: true
+          title: Topshiriq fayli
+        link:
+          type: string
+          format: uri
+          title: Tashqi havola (Figma, GitHub, Drive)
+          maxLength: 500
+        comment:
+          type: string
+          title: Frilanser izohi
+          description: 'Masalan: ''Mana aka, ishingiz tayyor, tekshirib oling'''
+        status:
+          allOf:
+          - $ref: '#/components/schemas/WorkSubmissionStatusEnum'
+          readOnly: true
+        revision_number:
+          type: integer
+          readOnly: true
+          title: Nechahchi topshirish
+        client_feedback:
+          type: string
+          readOnly: true
+          title: Mijoz izohi
+          description: 'Masalan: ''Logotipning rangini o''zgartiring'''
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan vaqt
+      required:
+      - client_feedback
+      - comment
+      - contract
+      - created_at
+      - freelancer
+      - freelancer_detail
+      - id
+      - revision_number
+      - status
+    WorkSubmissionRequest:
+      type: object
+      properties:
+        contract:
+          type: string
+          format: uuid
+        file:
+          type: string
+          format: binary
+          nullable: true
+          title: Topshiriq fayli
+        link:
+          type: string
+          format: uri
+          title: Tashqi havola (Figma, GitHub, Drive)
+          maxLength: 500
+        comment:
+          type: string
+          minLength: 1
+          title: Frilanser izohi
+          description: 'Masalan: ''Mana aka, ishingiz tayyor, tekshirib oling'''
+      required:
+      - comment
+      - contract
+    WorkSubmissionStatusEnum:
+      enum:
+      - SUBMITTED
+      - APPROVED
+      - REVISION_REQUESTED
+      - DISPUTED
+      type: string
+      description: |-
+        * `SUBMITTED` - Topshirildi (Mijoz ko'rib chiqmoqda)
+        * `APPROVED` - Qabul qilindi (Pul to'landi)
+        * `REVISION_REQUESTED` - Qayta ishlash so'raldi
+        * `DISPUTED` - Nizoli (Adminlar ko'rmoqda)
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
