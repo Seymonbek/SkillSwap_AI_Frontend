@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { disputeService } from '@/shared/api';
 
-export const useDisputeStore = create((set, get) => ({
+export const useDisputeStore = create((set) => ({
   // State
   disputes: [],
   currentDispute: null,

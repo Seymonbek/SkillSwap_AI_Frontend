@@ -1,80 +1,76 @@
-# SkillSwap AI Frontend - Unicorn Architecture
+# SkillSwap AI Frontend Architecture
 
-## 🏗️ Feature-Sliced Design (FSD) Architecture
+## Hozirgi tuzilma
 
-```
+Loyiha FSD yo'nalishiga yaqin qurilgan, lekin amalda `pages + entities + shared` markazli SPA sifatida ishlaydi.
+
+```text
 src/
-├── 📱 app/                    # Application layer
-│   ├── providers/             # App providers (Router, QueryClient, etc.)
-│   ├── router/                # Routing configuration
-│   ├── store/                 # Root store setup
-│   └── styles/                # Global styles
-│
-├── 🧩 entities/               # Business entities
-│   ├── user/                  # User entity
-│   ├── chat/                  # Chat entity
-│   ├── video-call/            # Video call entity
-│   ├── job/                   # Job entity
-│   ├── mentorship/            # Mentorship entity
-│   └── barter/                # Barter session entity
-│
-├── ⚡ features/               # User features (use cases)
-│   ├── auth/                  # Authentication
-│   ├── chat-messaging/        # Chat messaging
-│   ├── video-calling/         # Video calling
-│   ├── job-management/        # Job CRUD
-│   ├── mentorship-flow/       # Mentorship workflow
-│   ├── ai-services/           # AI features
-│   └── payments/              # Payment processing
-│
-├── 🧱 widgets/                 # Complex UI blocks
-│   ├── chat-widget/           # Full chat widget
-│   ├── video-widget/          # Video call widget
-│   ├── job-card/              # Job card with actions
-│   └── user-profile/          # User profile widget
-│
-├── 🎨 shared/                  # Shared resources
-│   ├── api/                     # API layer
-│   ├── ui/                      # UI Kit (Atomic Design)
-│   │   ├── atoms/               # Buttons, Inputs, Icons
-│   │   ├── molecules/           # Form fields, Cards
-│   │   ├── organisms/           # Headers, Sidebars
-│   │   └── templates/           # Page layouts
-│   ├── lib/                     # Utilities & hooks
-│   └── config/                  # App configuration
-│
-└── 📄 pages/                   # Page components
-    ├── auth/
-    ├── dashboard/
-    ├── chat/
-    ├── video/
-    └── freelance/
+├── app/
+│   ├── App.jsx                # Root routing, layouts, route lazy loading
+│   └── styles/                # Global CSS
+├── entities/
+│   ├── barter/
+│   ├── chat/
+│   ├── dispute/
+│   ├── job/
+│   ├── notification/
+│   └── user/                  # Zustand storelar va domain state
+├── pages/
+│   ├── auth/
+│   ├── barter/
+│   ├── chat/
+│   ├── contracts/
+│   ├── dashboard/
+│   ├── disputes/
+│   ├── home/
+│   ├── jobs/
+│   ├── notifications/
+│   ├── profile/
+│   ├── search/
+│   ├── subscriptions/
+│   ├── video/
+│   └── wallet/                # Route-level page komponentlari
+└── shared/
+    ├── api/                   # Axios client, service layer, WebSocket helper
+    ├── hooks/                 # Reusable hooks
+    ├── lib/                   # Utility/helper funksiyalar
+    └── ui/                    # Shared UI komponentlari
 ```
 
-## 🎯 Design Principles
+## Routing
 
-1. **Feature-Sliced Design**: Har bir feature o'z domain'ini boshqaradi
-2. **Atomic Design System**: UI komponentlar atom-molekula-organizm-templat hierarhiyasida
-3. **Explicit Architecture**: Har bir modul o'z maqsadini aniq bildiadi
-4. **Low Coupling**: Modullar bir-biridan mustaqil
-5. **High Cohesion**: Bog'liq kodlar bir joyda
+- Barcha route'lar `src/app/App.jsx` ichida jamlangan.
+- Protected route'lar `localStorage` dagi `access_token` orqali tekshiriladi.
+- Sahifalar `React.lazy` bilan yuklanadi, shu sabab ilk bundle kichraygan.
 
-## 🚀 Getting Started
+## State va data oqimi
+
+- API chaqiriqlari `src/shared/api/` orqali o'tadi.
+- Domain state asosan `Zustand` store'larda saqlanadi.
+- Ayrim page'lar hali ham service layer'ni to'g'ridan-to'g'ri chaqiradi; bu amaldagi arxitekturaning muhim xususiyati.
+
+## Asosiy modul kesimlari
+
+- `auth`: login, register, password reset, 2FA
+- `jobs`: ish e'lonlari, proposal, contract oqimlari
+- `barter`: skill exchange, mentorlik, session management
+- `chat`: room, message, file upload, WebSocket
+- `video`: WebRTC va signal oqimi
+- `profile`: me/profile detail, portfolio, review, skill test
+- `notifications`: polling + WebSocket asosida bildirishnoma
+
+## Development
 
 ```bash
 npm install
 npm run dev
+npm run lint
+npm run build
+npm run preview
 ```
 
-## 🧪 Testing
+## Eslatma
 
-```bash
-npm test           # Unit tests
-npm run test:e2e   # E2E tests
-```
-
-## 📚 Documentation
-
-- [Architecture Decision Records](./docs/adr/)
-- [Component Library](./src/shared/ui/)
-- [API Documentation](./src/shared/api/)
+- Hozircha `npm test` yoki `test:e2e` scriptlari yo'q.
+- `src_backup/` tarixiy nusxa sifatida qolgan va lint jarayonidan chiqarilgan.

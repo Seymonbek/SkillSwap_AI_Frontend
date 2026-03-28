@@ -18,12 +18,44 @@ export const LoginPage = () => {
   const [twoFACode, setTwoFACode] = useState('');
   const [resetEmail, setResetEmail] = useState('');
   const [tempToken, setTempToken] = useState(null);
+
   useEffect(() => {
     if (!hasActiveSession()) {
       clearStoredAuth();
     }
   }, []);
 
+  const getErrorMessage = (err, fallback) => {
+    const detail = err.response?.data?.detail;
+    if (typeof detail === 'string') {
+      const normalizedDetail = detail.toLowerCase();
+
+      if (
+        normalizedDetail.includes('given token not valid') ||
+        normalizedDetail.includes('token not valid') ||
+        normalizedDetail.includes('token is invalid') ||
+        normalizedDetail.includes('token is expired')
+      ) {
+        return 'Sessiya muddati tugagan yoki yaroqsiz. Qaytadan kirib ko‘ring.';
+      }
+
+      if (
+        normalizedDetail.includes('no active account') ||
+        normalizedDetail.includes('credentials') ||
+        normalizedDetail.includes('password')
+      ) {
+        return 'Email yoki parol noto‘g‘ri.';
+      }
+
+      return detail;
+    }
+    if (err.response?.data?.error) return err.response.data.error;
+    if (err.response?.data?.non_field_errors?.[0]) return err.response.data.non_field_errors[0];
+    if (err.code === 'ERR_NETWORK') {
+      return "Server bilan bog'lanib bo'lmadi. API manzili yoki CORS sozlamasini tekshiring.";
+    }
+    return fallback;
+  };
 
   const validateForm = () => {
     const errors = [];
@@ -63,7 +95,7 @@ export const LoginPage = () => {
 
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Login amalga oshmadi');
+      setError(getErrorMessage(err, 'Login amalga oshmadi'));
     } finally {
       setLoading(false);
     }
@@ -80,7 +112,7 @@ export const LoginPage = () => {
     setError('');
 
     try {
-      const res = await authService.verify2FA({
+      const res = await authService.verifyLogin2FA({
         temp_token: tempToken,
         code: twoFACode
       });
@@ -93,7 +125,7 @@ export const LoginPage = () => {
 
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.detail || "2FA kodi noto'g'ri");
+      setError(getErrorMessage(err, "2FA kodi noto'g'ri"));
     } finally {
       setLoading(false);
     }
@@ -113,7 +145,7 @@ export const LoginPage = () => {
       await authService.resetPassword({ email: resetEmail });
       setStep('reset-sent');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Xatolik yuz berdi');
+      setError(getErrorMessage(err, 'Xatolik yuz berdi'));
     } finally {
       setLoading(false);
     }

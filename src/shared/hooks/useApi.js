@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 /**
  * Custom hook for API calls with loading and error states
@@ -241,7 +241,7 @@ export function useForm(initialValues = {}, validate = () => ({})) {
  * Custom hook for WebSocket connections
  */
 export function useWebSocket(url, onMessage, onConnect, onDisconnect) {
-  const [ws, setWs] = useState(null);
+  const wsRef = useRef(null);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState(null);
 
@@ -270,20 +270,22 @@ export function useWebSocket(url, onMessage, onConnect, onDisconnect) {
       setError(err);
     };
 
-    setWs(socket);
+    wsRef.current = socket;
 
     return () => {
+      wsRef.current = null;
       socket.close();
     };
   }, [url, onMessage, onConnect, onDisconnect]);
 
   const send = useCallback((data) => {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(data));
+    const socket = wsRef.current;
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(data));
     }
-  }, [ws]);
+  }, []);
 
-  return { ws, connected, error, send };
+  return { wsRef, connected, error, send };
 }
 
 /**
@@ -313,7 +315,7 @@ export function useLocalStorage(key, initialValue) {
     try {
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
-    } catch (error) {
+    } catch {
       return initialValue;
     }
   });

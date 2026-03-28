@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { freelanceService } from '@/shared/api';
+import { buildDirectChatLink } from '@/shared/lib/utils';
 import {
   ArrowLeft, Clock, DollarSign, MapPin, Calendar,
   Briefcase, MessageSquare, Send, CheckCircle2, Star,
@@ -33,12 +34,7 @@ export const JobDetailPage = () => {
 
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
-  useEffect(() => {
-    if (id) fetchJobDetail();
-    else setLoading(false);
-  }, [id]);
-
-  const fetchJobDetail = async () => {
+  const fetchJobDetail = useCallback(async () => {
     if (!id) return;
     try {
       const res = await freelanceService.getJob(id);
@@ -48,7 +44,12 @@ export const JobDetailPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    if (id) fetchJobDetail();
+    else setLoading(false);
+  }, [fetchJobDetail, id]);
 
   const fetchProposals = async () => {
     setLoadingProposals(true);
@@ -246,7 +247,7 @@ export const JobDetailPage = () => {
                 {showProposals ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
             )}
-            <button onClick={() => navigate(`/chat?user=${job.owner?.id}`)}
+            <button onClick={() => navigate(buildDirectChatLink(job.owner))}
               className="btn-secondary flex items-center gap-2 px-4">
               <MessageSquare className="w-4 h-4" /> Xabar
             </button>
@@ -324,7 +325,7 @@ export const JobDetailPage = () => {
                               {acceptingId === proposal.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                               Qabul qilish
                             </button>
-                            <button onClick={() => navigate(`/chat?user=${proposal.freelancer?.id}`)}
+                            <button onClick={() => navigate(buildDirectChatLink(proposal.freelancer))}
                               className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg text-sm hover:bg-slate-700 transition-colors flex items-center gap-2">
                               <MessageSquare className="w-4 h-4" /> Xabar
                             </button>

@@ -11,6 +11,7 @@ export const RegisterPage = () => {
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [registrationComplete, setRegistrationComplete] = useState(false);
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -60,27 +61,35 @@ export const RegisterPage = () => {
       });
 
       // Auto-login after registration
+      let autoLoginSucceeded = false;
       try {
         const loginRes = await authService.login({
           email: form.email,
           password: form.password,
         });
 
-        localStorage.setItem('access_token', loginRes.data.access);
-        localStorage.setItem('refresh_token', loginRes.data.refresh);
+        if (loginRes.data?.access && loginRes.data?.refresh) {
+          localStorage.setItem('access_token', loginRes.data.access);
+          localStorage.setItem('refresh_token', loginRes.data.refresh);
 
-        const userRes = await authService.getMe();
-        localStorage.setItem('user', JSON.stringify(userRes.data));
+          const userRes = await authService.getMe();
+          localStorage.setItem('user', JSON.stringify(userRes.data));
+          autoLoginSucceeded = true;
+        }
       } catch {
         // If auto-login fails (e.g. activation required), redirect to login
       }
 
-      navigate('/dashboard');
+      if (autoLoginSucceeded) {
+        navigate('/dashboard');
+      } else {
+        setRegistrationComplete(true);
+      }
     } catch (err) {
       const data = err.response?.data;
       if (data) {
         const messages = [];
-        Object.entries(data).forEach(([key, val]) => {
+        Object.values(data).forEach((val) => {
           const value = Array.isArray(val) ? val.join(', ') : val;
           messages.push(value);
         });
@@ -146,6 +155,22 @@ export const RegisterPage = () => {
             </motion.div>
           )}
 
+          {registrationComplete ? (
+            <div className="space-y-5">
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20"
+              >
+                <p className="text-emerald-300 text-sm">
+                  Akkaunt yaratildi. Email tasdiqlash talab qilinsa pochtangizni tekshiring va keyin login qiling.
+                </p>
+              </motion.div>
+              <button onClick={() => navigate('/login')} className="btn-primary w-full py-3">
+                Login sahifasiga o&apos;tish
+              </button>
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             {step === 1 ? (
               <>
@@ -268,8 +293,9 @@ export const RegisterPage = () => {
               )}
             </button>
           </form>
+          )}
 
-          {step === 1 && (
+          {!registrationComplete && step === 1 && (
             <div className="mt-8 text-center">
               <p className="text-slate-400">
                 Akkauntingiz bormi?{' '}

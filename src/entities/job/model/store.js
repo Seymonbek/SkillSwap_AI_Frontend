@@ -196,7 +196,7 @@ export const useJobStore = create((set, get) => ({
       const res = await freelanceService.getContract(id);
       set({ currentContract: res.data });
       return res.data;
-    } catch (error) {
+    } catch {
       return null;
     }
   },
@@ -255,7 +255,7 @@ export const useJobStore = create((set, get) => ({
       const data = res.data?.results || res.data || [];
       set({ submissions: data });
       return data;
-    } catch (error) {
+    } catch {
       return [];
     }
   },
