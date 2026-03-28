@@ -101,25 +101,6 @@ const getRoomAvatarSource = (room, currentUserId) => {
   return room?.avatar_url || room?.avatar || peer?.avatar_url || peer?.avatar || null;
 };
 
-const isDirectRoomWithUser = (room, targetUserId, currentUserId) => {
-  if (!room || !targetUserId || room.is_group) {
-    return false;
-  }
-
-  const participants = Array.isArray(room.participants) ? room.participants : [];
-  const participantIds = participants.map((participant) => String(participant.id));
-
-  if (!participantIds.includes(String(targetUserId))) {
-    return false;
-  }
-
-  if (!currentUserId) {
-    return true;
-  }
-
-  return participantIds.includes(String(currentUserId));
-};
-
 const getMessagePreview = (message) => {
   if (!message) {
     return "Xabar yo'q";
@@ -888,12 +869,6 @@ export const ChatPage = () => {
     connectWebSocket(activeRoomId, { reconnecting: socketStatus === 'reconnecting' });
   }, [acknowledgeRoomRead, activeRoomId, connectWebSocket, fetchMessages, fetchRooms, socketStatus]);
 
-  const findRoomByParticipant = useCallback((userId) => {
-    if (!userId) return null;
-
-    return rooms.find((room) => isDirectRoomWithUser(room, userId, currentUserId));
-  }, [currentUserId, rooms]);
-
   const renderMessageContent = (msg) => {
     const type = String(msg.message_type || 'TEXT').toUpperCase();
     const fileUrl = msg.file || msg.file_url;
@@ -1001,14 +976,6 @@ export const ChatPage = () => {
       return undefined;
     }
 
-    const existingRoom = findRoomByParticipant(targetUserId);
-    if (existingRoom) {
-      setChatLookupMessage('');
-      directRoomAttemptRef.current = '';
-      navigate(buildRoomRoute(existingRoom.id), { replace: true });
-      return undefined;
-    }
-
     const attemptKey = String(targetUserId);
     if (directRoomAttemptRef.current === attemptKey) {
       return undefined;
@@ -1020,8 +987,8 @@ export const ChatPage = () => {
     const resolveRoom = async () => {
       setChatLookupMessage(
         targetUserName
-          ? `${targetUserName} bilan chat yaratilmoqda...`
-          : 'Chat yaratilmoqda...'
+          ? `${targetUserName} bilan chat tayyorlanmoqda...`
+          : 'Chat tayyorlanmoqda...'
       );
 
       const createdRoom = await createDirectRoom(targetUserId);
@@ -1048,7 +1015,7 @@ export const ChatPage = () => {
     return () => {
       isCancelled = true;
     };
-  }, [activeRoomId, buildRoomRoute, createDirectRoom, findRoomByParticipant, navigate, roomsLoading, targetUserId, targetUserName]);
+  }, [activeRoomId, buildRoomRoute, createDirectRoom, navigate, roomsLoading, targetUserId, targetUserName]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: messages.length > 1 ? 'smooth' : 'auto' });
