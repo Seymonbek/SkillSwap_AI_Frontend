@@ -559,12 +559,24 @@ export const BarterPage = () => {
     setActionLoading(actionKey);
 
     try {
-      const session = sessions.find((item) => item.id === sessionId);
-      if (!session) {
+      const localSession = sessions.find((item) => item.id === sessionId);
+      if (!localSession) {
         throw new Error('Session topilmadi');
       }
+      let session = localSession;
+
+      try {
+        const latestSessionResponse = await barterService.getSession(sessionId);
+        if (latestSessionResponse?.data?.id) {
+          session = latestSessionResponse.data;
+        }
+      } catch {
+        // Fallback to the locally cached session if refresh fails.
+      }
+
       const mentorId = getId(session.mentor_detail) || getId(session.mentor);
       const isMentor = currentUserId && String(mentorId) === String(currentUserId);
+      const scheduledAt = session.scheduled_time ? new Date(session.scheduled_time) : null;
 
       if (action === 'complete' && session.status !== 'IN_PROGRESS') {
         setErrorMsg('Faqat boshlangan sessiyani yakunlash mumkin.');
@@ -579,16 +591,68 @@ export const BarterPage = () => {
       }
 
       if (action === 'confirm') {
-        await barterService.confirmSession(sessionId, session);
+        if (!isMentor) {
+          setErrorMsg('Sessiyani faqat mentor tasdiqlay oladi.');
+          setTimeout(() => setErrorMsg(''), 5000);
+          return;
+        }
+
+        if (!['PENDING', 'SCHEDULED'].includes(session.status)) {
+          setErrorMsg('Faqat kutilayotgan sessiyani tasdiqlash mumkin.');
+          setTimeout(() => setErrorMsg(''), 5000);
+          return;
+        }
+
+        if (!scheduledAt || Number.isNaN(scheduledAt.getTime())) {
+          setErrorMsg('Sessiya vaqti topilmadi.');
+          setTimeout(() => setErrorMsg(''), 5000);
+          return;
+        }
+
+        if (scheduledAt <= new Date()) {
+          setErrorMsg("Vaqti o'tgan sessiyani tasdiqlab bo'lmaydi.");
+          setTimeout(() => setErrorMsg(''), 5000);
+          return;
+        }
+      }
+
+      if (action === 'start') {
+        if (!['CONFIRMED', 'SCHEDULED'].includes(session.status)) {
+          setErrorMsg('Faqat tasdiqlangan yoki rejalashtirilgan sessiyani boshlash mumkin.');
+          setTimeout(() => setErrorMsg(''), 5000);
+          return;
+        }
+
+        if (!scheduledAt || Number.isNaN(scheduledAt.getTime())) {
+          setErrorMsg('Sessiya vaqti topilmadi.');
+          setTimeout(() => setErrorMsg(''), 5000);
+          return;
+        }
+
+        const earliestStartTime = new Date(Date.now() + 15 * 60 * 1000);
+        if (scheduledAt > earliestStartTime) {
+          setErrorMsg(
+            `Sessiyani faqat ${scheduledAt.toLocaleTimeString('uz-UZ', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })} ga 15 daqiqa qolganda boshlash mumkin.`
+          );
+          setTimeout(() => setErrorMsg(''), 5000);
+          return;
+        }
+      }
+
+      if (action === 'confirm') {
+        await barterService.confirmSession(sessionId);
         setSuccessMsg('Sessiya tasdiqlandi.');
       } else if (action === 'start') {
-        await barterService.startSession(sessionId, session);
+        await barterService.startSession(sessionId);
         setSuccessMsg('Sessiya boshlandi.');
       } else if (action === 'complete') {
-        await barterService.completeSession(sessionId, session);
+        await barterService.completeSession(sessionId);
         setSuccessMsg('Sessiya yakunlandi.');
       } else if (action === 'cancel') {
-        await barterService.cancelSession(sessionId, session);
+        await barterService.cancelSession(sessionId);
         setSuccessMsg('Sessiya bekor qilindi.');
       }
       const refreshedSessions = await fetchSessions();

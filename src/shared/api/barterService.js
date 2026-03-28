@@ -7,26 +7,6 @@ const buildMentorshipPayload = (data = {}) => ({
   proposed_schedule: data.proposed_schedule,
 });
 
-const buildSessionPayload = (data = {}) => ({
-  mentor: data.mentor_detail?.id || data.mentor?.id || data.mentor,
-  topic: data.topic,
-  scheduled_time: data.scheduled_time,
-  duration_minutes: data.duration_minutes,
-});
-
-const hasRequiredSessionPayload = (payload = {}) =>
-  Boolean(payload.mentor && payload.topic && payload.scheduled_time);
-
-const getSessionActionPayload = async (id, data = {}) => {
-  const directPayload = buildSessionPayload(data);
-  if (hasRequiredSessionPayload(directPayload)) {
-    return directPayload;
-  }
-
-  const res = await api.get(`/barter/sessions/${id}/`);
-  return buildSessionPayload(res.data);
-};
-
 const buildSyntheticResponse = (data, status = 200) => ({
   data,
   status,
@@ -63,10 +43,11 @@ const deleteSessionWithStatus = async (id, data = {}, status = 'CANCELLED') => {
   return buildSyntheticResponse({ ...data, id, status }, 204);
 };
 
-const postSessionAction = async (id, paths, data = {}) => {
-  const payload = await getSessionActionPayload(id, data);
-  return postToFirstAvailable(Array.isArray(paths) ? paths : [paths], payload);
-};
+const postSessionAction = async (id, paths, data = {}) =>
+  postToFirstAvailable(
+    Array.isArray(paths) ? paths : [paths],
+    data && typeof data === 'object' ? data : {}
+  );
 
 const barterService = {
   // Mentorship — /barter/mentorship/
