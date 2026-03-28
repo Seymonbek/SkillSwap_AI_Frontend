@@ -1,10 +1,54 @@
 import api from './api';
 
+const buildDirectRoomPayloads = (targetUserId, roomName) => {
+  const normalizedUserId = Number.isNaN(Number(targetUserId))
+    ? targetUserId
+    : Number(targetUserId);
+
+  const basePayload = {
+    name: roomName || null,
+    is_group: false,
+    can_add_participants: false,
+  };
+
+  const variants = [
+    { ...basePayload, participant_ids: [normalizedUserId] },
+    { ...basePayload, participants: [normalizedUserId] },
+    { ...basePayload, participant: normalizedUserId },
+    { ...basePayload, user_id: normalizedUserId },
+    { ...basePayload, user: normalizedUserId },
+    { ...basePayload, callee: normalizedUserId },
+  ];
+
+  return variants.map((payload) =>
+    Object.fromEntries(
+      Object.entries(payload).filter(([, value]) => value !== undefined)
+    )
+  );
+};
+
 const chatService = {
   // Rooms — /chat/rooms/
   getRooms: (params) => api.get('/chat/rooms/', { params }),
   getRoom: (id) => api.get(`/chat/rooms/${id}/`),
   createRoom: (data) => api.post('/chat/rooms/', data),
+  createDirectRoom: async (targetUserId, roomName) => {
+    let lastError = null;
+
+    for (const payload of buildDirectRoomPayloads(targetUserId, roomName)) {
+      try {
+        return await api.post('/chat/rooms/', payload);
+      } catch (error) {
+        const status = error.response?.status;
+        if (status && ![400, 404, 405, 422].includes(status)) {
+          throw error;
+        }
+        lastError = error;
+      }
+    }
+
+    throw lastError || new Error('Unable to create direct chat room');
+  },
   updateRoom: (id, data) => api.patch(`/chat/rooms/${id}/`, data),
   deleteRoom: (id) => api.delete(`/chat/rooms/${id}/`),
   uploadFile: (roomId, formData) => api.post(`/chat/rooms/${roomId}/upload-file/`, formData, {
@@ -12,9 +56,12 @@ const chatService = {
   }),
 
   // Messages — /chat/messages/
-  getMessages: (params) => api.get('/chat/messages/', { params }),
+  getMessages: (params) => {
+    const roomId = params?.room_id ?? params?.room;
+    return api.get('/chat/messages/', { params: roomId ? { room_id: roomId } : params });
+  },
   getMessage: (id) => api.get(`/chat/messages/${id}/`),
-  markMessagesAsRead: (data) => api.post('/chat/messages/mark-read/', {}, { params: { room_id: data.room } }),
+  markMessagesAsRead: (data) => api.post('/chat/messages/mark-read/', {}, { params: { room_id: data.room_id ?? data.room } }),
 
   // Video Calls — /chat/calls/
   getCalls: (params) => api.get('/chat/calls/', { params }),

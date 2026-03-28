@@ -1,14 +1,15 @@
 import React, { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Phone, PhoneOff } from 'lucide-react';
 import { ToastProvider } from '@/shared/ui/providers/ToastProvider';
 import { Header } from '@/shared/ui/organisms/Header';
 import { BottomNav } from '@/shared/ui/organisms/BottomNav';
 import { Sidebar } from '@/shared/ui/organisms/Sidebar';
+import { hasActiveSession, hasValidAccessToken } from '@/shared/lib/auth';
 import { useAuthStore } from '@/entities/user/model/store';
 import { useNotificationStore } from '@/entities/notification/model/store';
 
-// Pages
 import { LandingPage } from '@/pages/home/LandingPage';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
@@ -29,7 +30,7 @@ import { SubscriptionsPage } from '@/pages/subscriptions/SubscriptionsPage';
 
 // Simple auth check
 const isAuthenticated = () => {
-  return !!localStorage.getItem('access_token');
+  return hasActiveSession();
 };
 
 // Protected route wrapper
@@ -42,7 +43,7 @@ const ProtectedRoute = ({ children }) => {
 
 // Public route wrapper (redirect if logged in)
 const PublicRoute = ({ children }) => {
-  if (isAuthenticated()) {
+  if (hasValidAccessToken()) {
     return <Navigate to="/dashboard" replace />;
   }
   return children;
@@ -65,7 +66,16 @@ const PageTransition = ({ children }) => (
 const AppLayout = ({ children }) => {
   const location = useLocation();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const { unreadCount, startPolling, stopPolling, connectWebSocket, disconnectWebSocket } = useNotificationStore();
+  const {
+    unreadCount,
+    incomingCall,
+    clearIncomingCall,
+    markAsRead,
+    startPolling,
+    stopPolling,
+    connectWebSocket,
+    disconnectWebSocket,
+  } = useNotificationStore();
 
   // Initialize auth state from Zustand on first load
   useEffect(() => {
@@ -75,15 +85,72 @@ const AppLayout = ({ children }) => {
 
   // Start notification polling + WebSocket
   useEffect(() => {
-    if (isAuthenticated()) {
+    if (!isAuthenticated()) {
+      return undefined;
+    }
+
+    const initTimer = window.setTimeout(() => {
       startPolling();
       connectWebSocket();
-    }
+    }, 0);
+
     return () => {
+      window.clearTimeout(initTimer);
       stopPolling();
       disconnectWebSocket();
     };
+    // Global notification polling/socket app bo'ylab bitta marta boshqariladi.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const extractRoomId = (actionUrl) => {
+    if (!actionUrl) return null;
+    try {
+      const fakeBase = window.location.origin;
+      const url = new URL(actionUrl, fakeBase);
+      return url.searchParams.get('room');
+    } catch {
+      return null;
+    }
+  };
+
+  const getActionHref = (actionUrl) => {
+    if (!actionUrl) return null;
+
+    try {
+      const url = new URL(actionUrl, window.location.origin);
+
+      if (url.origin === window.location.origin) {
+        return `${url.pathname}${url.search}${url.hash}`;
+      }
+
+      return url.toString();
+    } catch {
+      return actionUrl;
+    }
+  };
+
+  const handleIncomingCall = async () => {
+    if (!incomingCall) return;
+    const roomId = extractRoomId(incomingCall.action_url);
+    const actionHref = getActionHref(incomingCall.action_url);
+    if (incomingCall.id) {
+      await markAsRead(incomingCall.id);
+    }
+    clearIncomingCall();
+    if (actionHref) {
+      window.location.href = actionHref;
+    } else if (roomId) {
+      window.location.href = `/video?room=${roomId}`;
+    }
+  };
+
+  const dismissIncomingCall = async () => {
+    if (incomingCall?.id) {
+      await markAsRead(incomingCall.id);
+    }
+    clearIncomingCall();
+  };
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
@@ -97,6 +164,39 @@ const AppLayout = ({ children }) => {
         </AnimatePresence>
       </main>
       <BottomNav />
+
+      {incomingCall && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
+          <div className="glass-card w-full max-w-md p-6 border border-emerald-500/20 shadow-2xl">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-full bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center animate-pulse">
+                <Phone className="w-7 h-7 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-emerald-400">Incoming Call</p>
+                <h3 className="text-xl font-bold text-white">{incomingCall.title || "Sizga qo'ng'iroq qilishyapti"}</h3>
+                <p className="text-sm text-slate-400 mt-1">{incomingCall.message || "Qabul qilish uchun pastdagi tugmani bosing."}</p>
+              </div>
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={dismissIncomingCall}
+                className="flex-1 py-3 rounded-xl bg-red-500/10 text-red-300 border border-red-500/20 hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2 font-medium"
+              >
+                <PhoneOff className="w-4 h-4" />
+                Bekor qilish
+              </button>
+              <button
+                onClick={handleIncomingCall}
+                className="flex-1 py-3 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2 font-medium"
+              >
+                <Phone className="w-4 h-4" />
+                Qabul qilish
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -120,6 +220,7 @@ export const App = () => {
         <Route path="/chat/:roomId" element={<ProtectedRoute><AppLayout><ChatPage /></AppLayout></ProtectedRoute>} />
         <Route path="/video" element={<ProtectedRoute><AppLayout><VideoPage /></AppLayout></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><AppLayout><NotificationsPage /></AppLayout></ProtectedRoute>} />
+        <Route path="/profile/:id" element={<ProtectedRoute><AppLayout><ProfilePage /></AppLayout></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><AppLayout><ProfilePage /></AppLayout></ProtectedRoute>} />
         <Route path="/wallet" element={<ProtectedRoute><AppLayout><WalletPage /></AppLayout></ProtectedRoute>} />
         <Route path="/contracts" element={<ProtectedRoute><AppLayout><ContractsPage /></AppLayout></ProtectedRoute>} />

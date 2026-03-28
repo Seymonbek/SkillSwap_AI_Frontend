@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { notificationsService } from '@/shared/api';
 import { createWebSocket } from '@/shared/api/api';
 
+const DEBUG_NOTIFICATIONS = import.meta.env.DEV && import.meta.env.VITE_DEBUG_WS === 'true';
+
 export const useNotificationStore = create((set, get) => ({
   // State
   notifications: [],
@@ -10,6 +12,7 @@ export const useNotificationStore = create((set, get) => ({
   error: null,
   wsConnection: null,
   pollingInterval: null,
+  incomingCall: null,
 
   // Fetch — /notifications/
   fetchNotifications: async () => {
@@ -30,7 +33,7 @@ export const useNotificationStore = create((set, get) => ({
       const count = res.data?.count ?? res.data?.unread_count ?? 0;
       set({ unreadCount: count });
       return count;
-    } catch (error) {
+    } catch {
       return 0;
     }
   },
@@ -90,11 +93,15 @@ export const useNotificationStore = create((set, get) => ({
 
   // Add notification from WebSocket
   addNotification: (notification) => {
+    const isIncomingCall = notification.notification_type === 'CHAT' && notification.action_url;
     set((state) => ({
       notifications: [notification, ...state.notifications],
       unreadCount: state.unreadCount + 1,
+      incomingCall: isIncomingCall ? notification : state.incomingCall,
     }));
   },
+
+  clearIncomingCall: () => set({ incomingCall: null }),
 
   // WebSocket connection for real-time notifications
   connectWebSocket: () => {
@@ -104,9 +111,7 @@ export const useNotificationStore = create((set, get) => ({
     try {
       const ws = createWebSocket('/ws/notifications/');
 
-      ws.onopen = () => {
-        console.log('[Notifications] WebSocket connected');
-      };
+      ws.onopen = () => {};
 
       ws.onmessage = (event) => {
         try {
@@ -118,20 +123,23 @@ export const useNotificationStore = create((set, get) => ({
               title: data.title || data.message,
               message: data.message || data.body,
               notification_type: data.notification_type || 'SYSTEM',
+              action_url: data.action_url || data.link || null,
+              entity_type: data.entity_type || null,
+              entity_id: data.entity_id || null,
               is_read: false,
               created_at: data.created_at || new Date().toISOString(),
-              link: data.link,
             });
           } else if (data.type === 'unread_count') {
             set({ unreadCount: data.count || 0 });
           }
         } catch (e) {
-          console.error('[Notifications] WS message parse error:', e);
+          if (DEBUG_NOTIFICATIONS) {
+            console.error('[Notifications] WS message parse error:', e);
+          }
         }
       };
 
       ws.onclose = (event) => {
-        console.log('[Notifications] WebSocket closed:', event.code);
         set({ wsConnection: null });
 
         // Auto-reconnect after 5 seconds (only if not intentionally closed)
@@ -146,19 +154,29 @@ export const useNotificationStore = create((set, get) => ({
       };
 
       ws.onerror = (error) => {
-        console.error('[Notifications] WebSocket error:', error);
+        if (DEBUG_NOTIFICATIONS) {
+          console.error('[Notifications] WebSocket error:', error);
+        }
       };
 
       set({ wsConnection: ws });
     } catch (error) {
-      console.error('[Notifications] Failed to create WebSocket:', error);
+      if (DEBUG_NOTIFICATIONS) {
+        console.error('[Notifications] Failed to create WebSocket:', error);
+      }
     }
   },
 
   disconnectWebSocket: () => {
     const { wsConnection } = get();
     if (wsConnection) {
-      wsConnection.close(4000, 'User disconnect');
+      wsConnection.onopen = null;
+      wsConnection.onmessage = null;
+      wsConnection.onerror = null;
+      wsConnection.onclose = null;
+      if (wsConnection.readyState === WebSocket.OPEN) {
+        wsConnection.close(4000, 'User disconnect');
+      }
       set({ wsConnection: null });
     }
   },

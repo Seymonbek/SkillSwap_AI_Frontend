@@ -1,7 +1,16 @@
 import { create } from 'zustand';
 import { barterService, authService } from '@/shared/api';
 
-export const useBarterStore = create((set, get) => ({
+const hydrateSessionAfterAction = async (id, fallbackData = null) => {
+  try {
+    const detailRes = await barterService.getSession(id);
+    return detailRes.data || fallbackData;
+  } catch {
+    return fallbackData;
+  }
+};
+
+export const useBarterStore = create((set) => ({
   // State
   mentors: [],
   mentorshipRequests: [],
@@ -68,10 +77,24 @@ export const useBarterStore = create((set, get) => ({
 
   acceptMentorship: async (id) => {
     try {
-      const res = await barterService.acceptMentorship(id, {});
+      const res = await barterService.acceptMentorship(id);
       set((state) => ({
         mentorshipRequests: state.mentorshipRequests.map((r) =>
-          r.id === id ? res.data : r
+          r.id === id ? { ...r, status: res.data?.status || 'ACCEPTED', ...res.data } : r
+        ),
+      }));
+      return { success: true, data: res.data };
+    } catch (error) {
+      return { success: false, error: error.response?.data };
+    }
+  },
+
+  rejectMentorship: async (id) => {
+    try {
+      const res = await barterService.rejectMentorship(id);
+      set((state) => ({
+        mentorshipRequests: state.mentorshipRequests.map((r) =>
+          r.id === id ? { ...r, status: res.data?.status || 'REJECTED', ...res.data } : r
         ),
       }));
       return { success: true, data: res.data };
@@ -120,15 +143,16 @@ export const useBarterStore = create((set, get) => ({
     }
   },
 
-  updateBarterSession: async (id, data) => {
+  confirmBarterSession: async (id) => {
     try {
-      const res = await barterService.updateSession(id, data);
+      const res = await barterService.confirmSession(id);
+      const sessionData = await hydrateSessionAfterAction(id, res.data);
       set((state) => ({
         barterSessions: state.barterSessions.map((s) =>
-          s.id === id ? res.data : s
+          s.id === id ? { ...s, status: sessionData?.status || 'CONFIRMED', ...sessionData } : s
         ),
       }));
-      return { success: true, session: res.data };
+      return { success: true, session: sessionData };
     } catch (error) {
       return { success: false, error: error.response?.data };
     }
@@ -137,12 +161,13 @@ export const useBarterStore = create((set, get) => ({
   startBarterSession: async (id) => {
     try {
       const res = await barterService.startSession(id);
+      const sessionData = await hydrateSessionAfterAction(id, res.data);
       set((state) => ({
         barterSessions: state.barterSessions.map((s) =>
-          s.id === id ? res.data : s
+          s.id === id ? { ...s, ...sessionData } : s
         ),
       }));
-      return { success: true, session: res.data };
+      return { success: true, session: sessionData };
     } catch (error) {
       return { success: false, error: error.response?.data };
     }
@@ -151,12 +176,28 @@ export const useBarterStore = create((set, get) => ({
   completeBarterSession: async (id) => {
     try {
       const res = await barterService.completeSession(id);
+      const sessionData = await hydrateSessionAfterAction(id, res.data);
       set((state) => ({
         barterSessions: state.barterSessions.map((s) =>
-          s.id === id ? res.data : s
+          s.id === id ? { ...s, ...sessionData } : s
         ),
       }));
-      return { success: true, session: res.data };
+      return { success: true, session: sessionData };
+    } catch (error) {
+      return { success: false, error: error.response?.data };
+    }
+  },
+
+  cancelBarterSession: async (id) => {
+    try {
+      const res = await barterService.cancelSession(id);
+      const sessionData = await hydrateSessionAfterAction(id, res.data);
+      set((state) => ({
+        barterSessions: state.barterSessions.map((s) =>
+          s.id === id ? { ...s, status: sessionData?.status || 'CANCELLED', ...sessionData } : s
+        ),
+      }));
+      return { success: true, session: sessionData };
     } catch (error) {
       return { success: false, error: error.response?.data };
     }

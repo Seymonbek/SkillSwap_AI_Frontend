@@ -80,3 +80,27 @@ export function isValidEmail(email) {
 export function isValidPhone(phone) {
   return /^\+998[0-9]{9}$/.test(phone.replace(/\s/g, ''));
 }
+
+/**
+ * Build a direct-chat URL for a user.
+ */
+export function buildDirectChatLink(user, extraParams = {}) {
+  if (!user?.id) return '/chat';
+
+  const params = new URLSearchParams({ user: String(user.id) });
+  const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
+
+  if (fullName) {
+    params.set('name', fullName);
+  }
+
+  Object.entries(extraParams).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') {
+      return;
+    }
+
+    params.set(key, String(value));
+  });
+
+  return `/chat?${params.toString()}`;
+}
