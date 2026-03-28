@@ -6,7 +6,7 @@ import { ToastProvider } from '@/shared/ui/providers/ToastProvider';
 import { Header } from '@/shared/ui/organisms/Header';
 import { BottomNav } from '@/shared/ui/organisms/BottomNav';
 import { Sidebar } from '@/shared/ui/organisms/Sidebar';
-import { hasActiveSession, hasValidAccessToken } from '@/shared/lib/auth';
+import { hasActiveSession } from '@/shared/lib/auth';
 import { chatService } from '@/shared/api';
 import { useAuthStore } from '@/entities/user/model/store';
 import { useNotificationStore } from '@/entities/notification/model/store';
@@ -44,7 +44,7 @@ const ProtectedRoute = ({ children }) => {
 
 // Public route wrapper (redirect if logged in)
 const PublicRoute = ({ children }) => {
-  if (hasValidAccessToken()) {
+  if (hasActiveSession()) {
     return <Navigate to="/dashboard" replace />;
   }
   return children;

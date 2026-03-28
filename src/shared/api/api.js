@@ -47,8 +47,11 @@ const getRefreshAccessToken = async () => {
     refreshPromise = axios
       .post(`${API_BASE_URL}/auth/jwt/refresh/`, { refresh: refreshToken })
       .then((response) => {
-        const { access } = response.data;
+        const { access, refresh: nextRefreshToken } = response.data;
         localStorage.setItem('access_token', access);
+        if (nextRefreshToken) {
+          localStorage.setItem('refresh_token', nextRefreshToken);
+        }
         return access;
       })
       .finally(() => {

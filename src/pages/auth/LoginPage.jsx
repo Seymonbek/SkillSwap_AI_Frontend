@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authService } from '@/shared/api';
+import { clearStoredAuth, hasActiveSession } from '@/shared/lib/auth';
 import {
   Mail, Lock, ArrowRight, Sparkles, Eye, EyeOff,
   AlertCircle, Shield, RefreshCw, CheckCircle2
@@ -17,6 +18,12 @@ export const LoginPage = () => {
   const [twoFACode, setTwoFACode] = useState('');
   const [resetEmail, setResetEmail] = useState('');
   const [tempToken, setTempToken] = useState(null);
+  useEffect(() => {
+    if (!hasActiveSession()) {
+      clearStoredAuth();
+    }
+  }, []);
+
 
   const validateForm = () => {
     const errors = [];

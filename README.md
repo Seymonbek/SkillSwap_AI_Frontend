@@ -1,16 +1,323 @@
-# React + Vite
+# SkillSwap AI Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+SkillSwap AI Frontend is the React single-page application for the SkillSwap platform. It brings together authentication, freelance workflows, barter and mentorship sessions, chat, video calls, notifications, wallet flows, subscriptions, and profile management into one client application.
 
-Currently, two official plugins are available:
+This repository is the user-facing frontend only. It consumes the SkillSwap backend API and WebSocket services.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## What This App Includes
 
-## React Compiler
+- Email/password login with optional 2FA verification
+- JWT-based protected routes with automatic access-token refresh
+- Freelance job browsing and job detail flows
+- Barter and mentorship discovery plus session lifecycle screens
+- Real-time chat and call-related UI
+- Notification polling plus WebSocket-driven live updates
+- Wallet, contract, dispute, subscription, profile, and search pages
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
 
-## Expanding the ESLint configuration
+- React 19
+- Vite 8
+- React Router 7
+- Tailwind CSS 4
+- Zustand
+- Axios
+- Framer Motion
+- Lucide React
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Prerequisites
+
+- Node.js 20+
+- npm 10+
+- Running SkillSwap backend API
+
+## Quick Start
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Create a local environment file:
+
+```bash
+cp .env.example .env.local
+```
+
+If you do not want to create `.env.local`, the app can still run, but it will fall back to the hardcoded API base URL inside `src/shared/api/api.js`. For real development and deployment, define your own environment values.
+
+3. Start the development server:
+
+```bash
+npm run dev
+```
+
+4. Open the app:
+
+```text
+http://localhost:5173
+```
+
+## Environment Variables
+
+Create `.env.local` in the project root.
+
+```bash
+VITE_API_URL=http://127.0.0.1:8000/api/v1
+VITE_WS_URL=ws://127.0.0.1:8000
+VITE_DEBUG_WS=false
+VITE_DEBUG_RTC=false
+```
+
+### Variable Reference
+
+| Variable | Required | Purpose | Example |
+| --- | --- | --- | --- |
+| `VITE_API_URL` | Recommended | Base URL for REST API requests | `http://127.0.0.1:8000/api/v1` |
+| `VITE_WS_URL` | Recommended | Base URL for WebSocket connections | `ws://127.0.0.1:8000` |
+| `VITE_DEBUG_WS` | Optional | Enables chat/notification WebSocket debug logs in development | `true` |
+| `VITE_DEBUG_RTC` | Optional | Enables video/call debug logs in development | `true` |
+
+### Notes
+
+- If `VITE_WS_URL` is not set, the app derives the WebSocket origin from `VITE_API_URL`.
+- If `VITE_API_URL` is not set, the current code falls back to `http://13.50.109.251:8000/api/v1`. Override this for local development and production.
+- Only variables prefixed with `VITE_` are exposed to the browser.
+
+## Available Scripts
+
+```bash
+npm run dev
+npm run build
+npm run preview
+npm run lint
+```
+
+### Script Details
+
+- `npm run dev`: starts the Vite development server on port `5173`
+- `npm run build`: creates a production build in `dist/`
+- `npm run preview`: serves the built output locally for validation
+- `npm run lint`: runs ESLint against the source tree
+
+## Project Structure
+
+```text
+src/
+├── app/               # App shell, routing, global layout, providers
+├── entities/          # Zustand stores and domain state modules
+├── pages/             # Route-level page components
+└── shared/
+    ├── api/           # Axios client, service layer, WebSocket helper
+    ├── hooks/         # Reusable hooks
+    ├── lib/           # Utilities and auth helpers
+    └── ui/            # Shared UI primitives and layout components
+```
+
+### Main Route Areas
+
+- `auth`: login, register, password reset confirmation
+- `dashboard`: signed-in landing page
+- `jobs`: freelance listings and detail views
+- `barter`: barter and mentorship session flows
+- `chat`: conversations and live messaging
+- `video`: call UI and barter session completion flow
+- `notifications`: notification center
+- `profile`: self and public profile screens
+- `wallet`: token and wallet management
+- `contracts`, `disputes`, `subscriptions`, `search`
+
+## Architecture Summary
+
+The frontend uses a practical `app + pages + entities + shared` structure:
+
+- `app` owns routing and global shell behavior
+- `pages` own route-level composition and view logic
+- `entities` own domain-specific state through Zustand stores
+- `shared/api` centralizes HTTP and WebSocket setup
+- `shared/lib/auth.js` contains auth/session helpers used across the app
+
+Additional architectural notes live in [ARCHITECTURE.md](./ARCHITECTURE.md).
+
+## Authentication and Session Model
+
+The frontend uses JWT authentication with `access_token` and `refresh_token` stored in `localStorage`.
+
+### Current Behavior
+
+- Protected routes allow entry when there is an active access or refresh token
+- Access tokens expire quickly and are refreshed automatically through Axios interceptors
+- Refresh token rotation is supported and the latest rotated refresh token is persisted
+- Login and 2FA verification both store tokens and fetch the current user profile
+- Logging out clears `access_token`, `refresh_token`, and cached user data
+
+### Important Storage Keys
+
+- `access_token`
+- `refresh_token`
+- `user`
+
+### Practical Session Rule
+
+In the current backend configuration, access tokens live for 5 minutes and refresh tokens live for 1 day. That means:
+
+- users usually stay signed in when returning after a short gap such as 1 to 2 hours
+- if the app has been inactive long enough for the refresh token to expire, users must log in again
+
+## API and WebSocket Integration
+
+### REST API
+
+All REST calls go through `src/shared/api/api.js` and the service modules under `src/shared/api/`.
+
+Service groups currently include:
+
+- `authService`
+- `freelanceService`
+- `barterService`
+- `chatService`
+- `notificationsService`
+- `paymentsService`
+- `searchService`
+- `subscriptionsService`
+- `adminService`
+- `commonService`
+- `disputeService`
+
+### WebSocket Endpoints Used by the UI
+
+The frontend expects these backend WebSocket endpoints:
+
+- `/ws/notifications/`
+- `/ws/chat/:room_id/`
+- `/ws/call/:room_id/`
+
+The app sends the current JWT access token as a `token` query parameter for WebSocket authentication.
+
+### Notifications
+
+Notifications currently use a hybrid strategy:
+
+- unread count polling every 30 seconds
+- WebSocket push for real-time notification events
+- automatic reconnect for unexpected socket closures
+
+## Development Workflow
+
+### Recommended Local Flow
+
+1. Start the backend API locally
+2. Set `VITE_API_URL` and `VITE_WS_URL`
+3. Run `npm run dev`
+4. Open `http://localhost:5173`
+5. Run `npm run lint` before committing
+6. Run `npm run build` before deployment or handoff
+
+### Linting
+
+ESLint is configured through `eslint.config.js`.
+
+Ignored folders:
+
+- `dist`
+- `src_backup`
+
+## Build and Deployment
+
+### Production Build
+
+```bash
+npm run build
+```
+
+Build output is written to:
+
+```text
+dist/
+```
+
+### Preview Build Locally
+
+```bash
+npm run preview
+```
+
+### Deployment Checklist
+
+Before deploying, verify:
+
+- `VITE_API_URL` points to the correct backend base path
+- `VITE_WS_URL` points to the correct `ws://` or `wss://` origin
+- backend CORS allows the frontend origin
+- backend JWT/WebSocket authentication is working
+- `npm run build` succeeds without errors
+
+### Hosting Options
+
+The app can be deployed to any static hosting provider that serves the `dist/` directory, such as:
+
+- Nginx
+- Vercel
+- Netlify
+- Cloudflare Pages
+- S3 + CDN
+
+## Validation and Quality Checks
+
+Recommended verification commands:
+
+```bash
+npm run lint
+npm run build
+```
+
+Current repository status:
+
+- lint script exists
+- production build works
+- there is no frontend unit or e2e test suite configured in `package.json`
+
+## Known Implementation Notes
+
+- Routes are currently imported eagerly in `src/app/App.jsx`; route-level code splitting is not set up right now
+- The production build currently emits a large bundle warning for the main JS chunk
+- `src_backup/` is a historical copy and is not part of the active app
+- API schema references are available in `api.yaml`, but the backend remains the source of truth for API behavior
+
+## Troubleshooting
+
+### The app keeps redirecting to login
+
+Check:
+
+- `VITE_API_URL` is correct
+- backend JWT refresh endpoint is reachable
+- browser storage still contains `refresh_token`
+- backend clock and server time are correct
+
+### WebSocket does not connect
+
+Check:
+
+- `VITE_WS_URL` is correct
+- backend ASGI server is running
+- the WebSocket origin is not blocked by proxy or SSL configuration
+- the access token is still valid when the socket is opened
+
+### API requests fail with CORS errors
+
+Check backend `CORS_ALLOWED_ORIGINS` and confirm it includes the frontend domain.
+
+### Login works but data pages fail later
+
+Check that refresh-token rotation is handled correctly and that the latest `refresh_token` is being stored after `/auth/jwt/refresh/`.
+
+## Related Documents
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md)
+- [api.yaml](./api.yaml)
+
+## Maintainer Notes
+
+If you update routing, auth behavior, environment variables, or major feature areas, update this README in the same change. It should stay aligned with the real application rather than becoming a generic project summary.
