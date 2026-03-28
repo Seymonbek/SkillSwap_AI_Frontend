@@ -75,6 +75,40 @@ const getApiOrigin = () => {
   }
 };
 
+const rewriteMediaUrlToApiOrigin = (value) => {
+  const apiOrigin = getApiOrigin();
+  if (!apiOrigin) return value;
+
+  try {
+    const currentUrl = new URL(value);
+    if (!currentUrl.pathname.startsWith('/media/')) {
+      return value;
+    }
+
+    const apiUrl = new URL(apiOrigin);
+    if (currentUrl.origin === apiUrl.origin) {
+      return value;
+    }
+
+    return new URL(`${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`, apiOrigin).toString();
+  } catch {
+    return value;
+  }
+};
+
+export const appendAssetVersion = (value, version) => {
+  if (!value || !version) return value;
+
+  try {
+    const baseOrigin = typeof window !== 'undefined' ? window.location.origin : getApiOrigin() || 'http://localhost';
+    const nextUrl = new URL(value, baseOrigin);
+    nextUrl.searchParams.set('v', String(version));
+    return nextUrl.toString();
+  } catch {
+    return value;
+  }
+};
+
 export const normalizeAssetUrl = (value) => {
   if (!value || typeof value !== 'string') return null;
 
@@ -84,6 +118,8 @@ export const normalizeAssetUrl = (value) => {
   if (nextValue.startsWith('//')) {
     const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:';
     nextValue = `${protocol}${nextValue}`;
+  } else if (nextValue.startsWith('http://') || nextValue.startsWith('https://')) {
+    nextValue = rewriteMediaUrlToApiOrigin(nextValue);
   } else if (
     !nextValue.startsWith('http://') &&
     !nextValue.startsWith('https://') &&
@@ -109,7 +145,23 @@ export const normalizeAssetUrl = (value) => {
   return nextValue;
 };
 
-export const getUserAvatarSrc = (user) => normalizeAssetUrl(user?.avatar_url || user?.avatar || null);
+export const getUserAvatarInitial = (user, fallback = 'U') => {
+  const displayName = getUserDisplayName(user, '').trim();
+  if (displayName) {
+    return displayName.charAt(0).toUpperCase();
+  }
+
+  if (user?.email) {
+    return user.email.charAt(0).toUpperCase();
+  }
+
+  return fallback;
+};
+
+export const getUserAvatarSrc = (user) => {
+  const normalizedUrl = normalizeAssetUrl(user?.avatar_url || user?.avatar || null);
+  return appendAssetVersion(normalizedUrl, user?.avatar_version);
+};
 
 export const getUserPrimaryRating = (user) =>
   toNumber(user?.primary_rating ?? user?.freelance_rating ?? user?.rating ?? user?.barter_rating, 0);

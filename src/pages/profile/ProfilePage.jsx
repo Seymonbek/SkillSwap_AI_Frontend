@@ -5,6 +5,7 @@ import { authService } from '@/shared/api';
 import { buildDirectChatLink } from '@/shared/lib/utils';
 import {
   formatProfileDate,
+  getUserAvatarInitial,
   getUserAvatarSrc,
   getUserDisplayName,
   getUserPrimaryRating,
@@ -368,7 +369,8 @@ export const ProfilePage = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      applyProfileUser(response.data, true);
+      applyProfileUser({ ...response.data, avatar_version: Date.now() }, true);
+      setProfileAvatarFailed(false);
       toast.success('Profil rasmi yangilandi.');
     } catch (err) {
       console.error('Avatar upload error:', err);
@@ -596,6 +598,7 @@ export const ProfilePage = () => {
   };
 
   const profileAvatarSrc = profileAvatarFailed ? null : getUserAvatarSrc(user);
+  const profileAvatarInitial = getUserAvatarInitial(user, 'U');
   const displayName = getUserDisplayName(user);
   const infoRows = createInfoRows(user, isOwnProfile);
   const twoFactorQrImageSrc = getTwoFactorQrImageSrc(qrData?.qr_code || qrData?.qr_code_url);
@@ -685,7 +688,7 @@ export const ProfilePage = () => {
                     />
                   ) : (
                     <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white text-4xl font-bold border-4 border-slate-900 shadow-2xl">
-                      {displayName.charAt(0).toUpperCase()}
+                      {profileAvatarInitial}
                     </div>
                   )}
 

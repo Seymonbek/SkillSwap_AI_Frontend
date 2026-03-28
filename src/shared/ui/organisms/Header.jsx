@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, Bell, MessageSquare, ChevronLeft, Sparkles, Search } from 'lucide-react';
-import { getUserAvatarSrc, getUserDisplayName, getUserTokenBalance } from '@/shared/lib/user';
+import { getUserAvatarInitial, getUserAvatarSrc, getUserTokenBalance } from '@/shared/lib/user';
 
 export const Header = ({
   title,
@@ -15,9 +15,11 @@ export const Header = ({
 }) => {
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState('');
+  const [failedAvatarSrc, setFailedAvatarSrc] = useState(null);
   const avatarSrc = getUserAvatarSrc(user);
   const tokenBalance = getUserTokenBalance(user);
-  const userName = getUserDisplayName(user, 'User');
+  const avatarInitial = getUserAvatarInitial(user, 'U');
+  const resolvedAvatarSrc = avatarSrc && avatarSrc !== failedAvatarSrc ? avatarSrc : null;
 
   const handleSearch = (e) => {
     if (e.key === 'Enter' && searchValue.trim()) {
@@ -128,18 +130,25 @@ export const Header = ({
           )}
 
           {/* Profile */}
-          <div
+          <button
+            type="button"
             onClick={() => navigate('/profile')}
-            className="cursor-pointer ml-2"
+            aria-label="Profil sahifasini ochish"
+            className="ml-2 shrink-0"
           >
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-semibold text-sm border-2 border-slate-700/50 overflow-hidden">
-              {avatarSrc ? (
-                <img src={avatarSrc} alt={userName} className="w-full h-full object-cover" />
+              {resolvedAvatarSrc ? (
+                <img
+                  src={resolvedAvatarSrc}
+                  alt=""
+                  onError={() => setFailedAvatarSrc(avatarSrc)}
+                  className="w-full h-full object-cover"
+                />
               ) : (
-                user?.first_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'
+                avatarInitial
               )}
             </div>
-          </div>
+          </button>
         </div>
       </div>
     </header>
