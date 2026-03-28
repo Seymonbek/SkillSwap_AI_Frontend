@@ -66,7 +66,9 @@ const PageTransition = ({ children }) => (
 // Layout for authenticated pages
 const AppLayout = ({ children }) => {
   const location = useLocation();
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = useAuthStore((state) => state.user);
+  const initAuth = useAuthStore((state) => state.initAuth);
+  const fetchCurrentUser = useAuthStore((state) => state.fetchCurrentUser);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const {
@@ -98,9 +100,16 @@ const AppLayout = ({ children }) => {
 
   // Initialize auth state from Zustand on first load
   useEffect(() => {
-    const { initAuth } = useAuthStore.getState();
     initAuth();
-  }, []);
+  }, [initAuth]);
+
+  useEffect(() => {
+    if (!isAuthenticated() || user) {
+      return;
+    }
+
+    void fetchCurrentUser();
+  }, [fetchCurrentUser, user]);
 
   // Start notification polling + WebSocket
   useEffect(() => {

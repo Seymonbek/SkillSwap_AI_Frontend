@@ -52,7 +52,15 @@ export const ToastProvider = ({ children }) => {
     setToasts((prev) =>
       prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
     );
-  }, []);
+
+    const nextType = updates?.type;
+    const nextDuration = updates?.duration;
+    if (nextType && nextType !== 'loading' && typeof nextDuration === 'number' && nextDuration > 0) {
+      setTimeout(() => {
+        removeToast(id);
+      }, nextDuration);
+    }
+  }, [removeToast]);
 
   // Convenience methods
   const success = useCallback((message, duration) => addToast(message, 'success', duration), [addToast]);

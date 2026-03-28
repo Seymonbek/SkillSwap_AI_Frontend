@@ -1,7 +1,28 @@
 import { create } from 'zustand';
 import { authService } from '@/shared/api';
+import { clearStoredAuth, hasActiveSession } from '@/shared/lib/auth';
+import { normalizeUser } from '@/shared/lib/user';
 
-export const useAuthStore = create((set, get) => ({
+export const useAuthStore = create((set, get) => {
+  const persistUser = (nextUser) => {
+    if (!nextUser) {
+      localStorage.removeItem('user');
+      set({ user: null, isAuthenticated: false, twoFactorEnabled: false });
+      return null;
+    }
+
+    const normalizedUser = normalizeUser(nextUser);
+    localStorage.setItem('user', JSON.stringify(normalizedUser));
+    set({
+      user: normalizedUser,
+      isAuthenticated: true,
+      twoFactorEnabled: !!normalizedUser.is_two_factor_enabled,
+    });
+    return normalizedUser;
+  };
+
+  return ({
+
   // State
   user: null,
   isAuthenticated: false,
@@ -12,7 +33,7 @@ export const useAuthStore = create((set, get) => ({
   twoFactorEnabled: false,
 
   // Actions
-  setUser: (user) => set({ user, isAuthenticated: !!user }),
+  setUser: (user) => persistUser(user),
 
   login: async (email, password) => {
     set({ isLoading: true, error: null });
@@ -29,9 +50,8 @@ export const useAuthStore = create((set, get) => ({
       localStorage.setItem('refresh_token', refresh);
 
       const userResponse = await authService.getMe();
-      const user = userResponse.data;
-      localStorage.setItem('user', JSON.stringify(user));
-      set({ user, isAuthenticated: true, isLoading: false, twoFactorEnabled: !!user.is_two_factor_enabled });
+      const user = persistUser(userResponse.data);
+      set({ user, isAuthenticated: true, isLoading: false, twoFactorEnabled: !!user?.is_two_factor_enabled });
       return { success: true };
     } catch (error) {
       const msg = error.response?.data?.detail || "Login amalga oshmadi";
@@ -43,13 +63,13 @@ export const useAuthStore = create((set, get) => ({
   verify2FA: async (tempToken, code) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await authService.verify2FA({ temp_token: tempToken, code });
+      const res = await authService.verifyLogin2FA({ temp_token: tempToken, code });
       localStorage.setItem('access_token', res.data.access);
       localStorage.setItem('refresh_token', res.data.refresh);
 
       const userRes = await authService.getMe();
-      localStorage.setItem('user', JSON.stringify(userRes.data));
-      set({ user: userRes.data, isAuthenticated: true, isLoading: false });
+      const user = persistUser(userRes.data);
+      set({ user, isAuthenticated: true, isLoading: false });
       return { success: true };
     } catch (error) {
       const msg = error.response?.data?.detail || "2FA kodi noto'g'ri";
@@ -78,24 +98,16 @@ export const useAuthStore = create((set, get) => ({
   },
 
   logout: () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
+    clearStoredAuth();
     set({ user: null, isAuthenticated: false, error: null, wallet: null, kycStatus: null });
   },
 
   fetchCurrentUser: async () => {
     try {
       const response = await authService.getMe();
-      const user = response.data;
-      localStorage.setItem('user', JSON.stringify(user));
-      set({
-        user,
-        isAuthenticated: true,
-        twoFactorEnabled: !!user.is_two_factor_enabled,
-      });
+      const user = persistUser(response.data);
       return user;
-    } catch (error) {
+    } catch {
       get().logout();
       return null;
     }
@@ -108,8 +120,7 @@ export const useAuthStore = create((set, get) => ({
       const response = await authService.updateMe(data, isFormData ? {
         headers: { 'Content-Type': 'multipart/form-data' },
       } : undefined);
-      const user = response.data;
-      localStorage.setItem('user', JSON.stringify(user));
+      const user = persistUser(response.data);
       set({ user, isLoading: false });
       return { success: true, user };
     } catch (error) {
@@ -172,7 +183,7 @@ export const useAuthStore = create((set, get) => ({
       const res = await authService.getKYCStatus();
       set({ kycStatus: res.data });
       return res.data;
-    } catch (error) {
+    } catch {
       return null;
     }
   },
@@ -194,7 +205,7 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await authService.getPortfolio();
       return res.data?.results || res.data || [];
-    } catch (error) {
+    } catch {
       return [];
     }
   },
@@ -222,7 +233,7 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await authService.getReviews(params);
       return res.data?.results || res.data || [];
-    } catch (error) {
+    } catch {
       return [];
     }
   },
@@ -232,7 +243,7 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await authService.getSkillTests();
       return res.data?.results || res.data || [];
-    } catch (error) {
+    } catch {
       return [];
     }
   },
@@ -248,15 +259,25 @@ export const useAuthStore = create((set, get) => ({
 
   // Initialize auth state from localStorage
   initAuth: () => {
-    const token = localStorage.getItem('access_token');
-    const userStr = localStorage.getItem('user');
-    if (token && userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        set({ user, isAuthenticated: true, twoFactorEnabled: !!user.is_two_factor_enabled });
-      } catch {
-        set({ user: null, isAuthenticated: false });
-      }
+    if (!hasActiveSession()) {
+      clearStoredAuth();
+      set({ user: null, isAuthenticated: false, twoFactorEnabled: false });
+      return;
     }
+
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = persistUser(JSON.parse(userStr));
+        set({ user, isAuthenticated: true, twoFactorEnabled: !!user?.is_two_factor_enabled });
+      } catch {
+        clearStoredAuth();
+        set({ user: null, isAuthenticated: false, twoFactorEnabled: false });
+      }
+      return;
+    }
+
+    set({ user: null, isAuthenticated: false, twoFactorEnabled: false });
   },
-}));
+  });
+});

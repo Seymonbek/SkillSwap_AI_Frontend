@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { searchService } from '@/shared/api';
+import { getUserAvatarSrc, getUserPrimaryRating } from '@/shared/lib/user';
 import {
   Search as SearchIcon, Briefcase, User, Filter,
   Loader2, Star, MapPin, DollarSign, X, Sparkles
@@ -153,22 +154,30 @@ export const SearchPage = () => {
                 <div key={item.id} onClick={() => navigate(`/profile/${item.id}`)}
                   className="glass-card p-4 cursor-pointer hover:bg-white/5 transition-colors">
                   <div className="flex items-start sm:items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-semibold">
-                      {item.first_name?.charAt(0).toUpperCase() || item.email?.charAt(0).toUpperCase()}
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-semibold overflow-hidden">
+                      {getUserAvatarSrc(item) ? (
+                        <img
+                          src={getUserAvatarSrc(item)}
+                          alt={`${item.first_name || ''} ${item.last_name || ''}`.trim() || 'User'}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        item.first_name?.charAt(0).toUpperCase() || item.email?.charAt(0).toUpperCase()
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-white">{item.first_name} {item.last_name}</h4>
-                      <p className="text-sm text-slate-400">{item.email}</p>
+                      {item.email && <p className="text-sm text-slate-400">{item.email}</p>}
                       {item.location && (
                         <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
                           <MapPin className="w-3 h-3" /> {item.location}
                         </p>
                       )}
                     </div>
-                    {item.rating > 0 && (
+                    {getUserPrimaryRating(item) > 0 && (
                       <div className="flex items-center gap-1 text-amber-400">
                         <Star className="w-4 h-4" />
-                        <span className="font-semibold text-sm">{item.rating}</span>
+                        <span className="font-semibold text-sm">{getUserPrimaryRating(item).toFixed(1)}</span>
                       </div>
                     )}
                   </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, Bell, MessageSquare, ChevronLeft, Sparkles, Search } from 'lucide-react';
+import { getUserAvatarSrc, getUserDisplayName, getUserTokenBalance } from '@/shared/lib/user';
 
 export const Header = ({
   title,
@@ -14,6 +15,9 @@ export const Header = ({
 }) => {
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState('');
+  const avatarSrc = getUserAvatarSrc(user);
+  const tokenBalance = getUserTokenBalance(user);
+  const userName = getUserDisplayName(user, 'User');
 
   const handleSearch = (e) => {
     if (e.key === 'Enter' && searchValue.trim()) {
@@ -116,9 +120,9 @@ export const Header = ({
           </button>
 
           {/* Tokens Balance */}
-          {user?.wallet && (
+          {user && (
             <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 ml-2">
-              <span className="text-amber-400 font-bold">{user.wallet.time_tokens || 0}</span>
+              <span className="text-amber-400 font-bold">{tokenBalance}</span>
               <span className="text-amber-400 text-xs font-medium">Token</span>
             </div>
           )}
@@ -128,8 +132,12 @@ export const Header = ({
             onClick={() => navigate('/profile')}
             className="cursor-pointer ml-2"
           >
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-semibold text-sm border-2 border-slate-700/50">
-              {user?.first_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-semibold text-sm border-2 border-slate-700/50 overflow-hidden">
+              {avatarSrc ? (
+                <img src={avatarSrc} alt={userName} className="w-full h-full object-cover" />
+              ) : (
+                user?.first_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'
+              )}
             </div>
           </div>
         </div>
