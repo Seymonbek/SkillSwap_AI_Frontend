@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CheckCircle, 
@@ -8,8 +8,7 @@ import {
   X,
   Loader2
 } from 'lucide-react';
-
-const ToastContext = createContext(null);
+import { ToastContext } from './ToastContext';
 
 const icons = {
   success: CheckCircle,
@@ -30,6 +29,10 @@ const styles = {
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
+  const removeToast = useCallback((id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
   const addToast = useCallback((message, type = 'info', duration = 4000) => {
     const id = Date.now() + Math.random();
     const toast = { id, message, type, duration };
@@ -43,11 +46,7 @@ export const ToastProvider = ({ children }) => {
     }
 
     return id;
-  }, []);
-
-  const removeToast = useCallback((id) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  }, []);
+  }, [removeToast]);
 
   const updateToast = useCallback((id, updates) => {
     setToasts((prev) =>
@@ -113,42 +112,4 @@ const ToastItem = ({ toast, onRemove }) => {
       </div>
     </motion.div>
   );
-};
-
-export const useToast = () => {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error('useToast must be used within ToastProvider');
-  }
-  return context;
-};
-
-// Hook for promise-based toasts
-export const usePromiseToast = () => {
-  const { loading, updateToast, removeToast } = useToast();
-
-  const promise = async (promiseFn, { loading: loadingMsg, success: successMsg, error: errorMsg }) => {
-    const id = loading(loadingMsg);
-    
-    try {
-      const result = await promiseFn();
-      updateToast(id, { 
-        type: 'success', 
-        message: typeof successMsg === 'function' ? successMsg(result) : successMsg,
-        duration: 4000 
-      });
-      setTimeout(() => removeToast(id), 4000);
-      return result;
-    } catch (err) {
-      updateToast(id, { 
-        type: 'error', 
-        message: typeof errorMsg === 'function' ? errorMsg(err) : errorMsg,
-        duration: 4000 
-      });
-      setTimeout(() => removeToast(id), 4000);
-      throw err;
-    }
-  };
-
-  return promise;
 };

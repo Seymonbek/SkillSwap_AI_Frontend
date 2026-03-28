@@ -6,18 +6,23 @@ const buildDirectRoomPayloads = (targetUserId, roomName) => {
     : Number(targetUserId);
 
   const basePayload = {
-    name: roomName || null,
     is_group: false,
     can_add_participants: false,
   };
+  const payloadWithName = roomName
+    ? { ...basePayload, name: roomName }
+    : basePayload;
 
   const variants = [
-    { ...basePayload, participant_ids: [normalizedUserId] },
-    { ...basePayload, participants: [normalizedUserId] },
-    { ...basePayload, participant: normalizedUserId },
-    { ...basePayload, user_id: normalizedUserId },
-    { ...basePayload, user: normalizedUserId },
-    { ...basePayload, callee: normalizedUserId },
+    { ...payloadWithName, participant_ids: [normalizedUserId] },
+    { ...payloadWithName, participants: [normalizedUserId] },
+    { ...payloadWithName, participant: normalizedUserId },
+    { ...payloadWithName, participant_id: normalizedUserId },
+    { ...payloadWithName, user_id: normalizedUserId },
+    { ...payloadWithName, user: normalizedUserId },
+    { ...payloadWithName, user_ids: [normalizedUserId] },
+    { ...payloadWithName, callee: normalizedUserId },
+    { ...payloadWithName, target_user_id: normalizedUserId },
   ];
 
   return variants.map((payload) =>
@@ -56,6 +61,7 @@ const chatService = {
   }),
 
   // Messages — /chat/messages/
+  sendMessage: (data) => api.post('/chat/messages/', data),
   getMessages: (params) => {
     const roomId = params?.room_id ?? params?.room;
     return api.get('/chat/messages/', { params: roomId ? { room_id: roomId } : params });

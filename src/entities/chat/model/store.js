@@ -67,6 +67,7 @@ export const useChatStore = create((set, get) => ({
   uploadFile: async (roomId, file) => {
     try {
       const formData = new FormData();
+      formData.append('room_id', roomId);
       formData.append('file', file);
       const res = await chatService.uploadFile(roomId, formData);
       return { success: true, data: res.data };
@@ -97,7 +98,7 @@ export const useChatStore = create((set, get) => ({
           case 'message':
           case 'chat_message':
             set((state) => ({
-              messages: [...state.messages, data.message || data],
+              messages: [...state.messages, data],
             }));
             break;
 
@@ -153,13 +154,14 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  sendMessage: (content, messageType = 'text') => {
+  sendMessage: (content, messageType = 'TEXT') => {
     const { wsConnection } = get();
     if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
       wsConnection.send(JSON.stringify({
         type: 'message',
+        message: content,
         content,
-        message_type: messageType,
+        message_type: String(messageType || 'TEXT').toUpperCase(),
       }));
     }
   },
@@ -189,7 +191,7 @@ export const useChatStore = create((set, get) => ({
     try {
       const res = await chatService.getCalls(params);
       return res.data?.results || res.data || [];
-    } catch (error) {
+    } catch {
       return [];
     }
   },

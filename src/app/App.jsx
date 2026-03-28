@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Phone, PhoneOff } from 'lucide-react';
@@ -7,6 +7,7 @@ import { Header } from '@/shared/ui/organisms/Header';
 import { BottomNav } from '@/shared/ui/organisms/BottomNav';
 import { Sidebar } from '@/shared/ui/organisms/Sidebar';
 import { hasActiveSession, hasValidAccessToken } from '@/shared/lib/auth';
+import { chatService } from '@/shared/api';
 import { useAuthStore } from '@/entities/user/model/store';
 import { useNotificationStore } from '@/entities/notification/model/store';
 
@@ -66,6 +67,7 @@ const PageTransition = ({ children }) => (
 const AppLayout = ({ children }) => {
   const location = useLocation();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const {
     unreadCount,
     incomingCall,
@@ -76,6 +78,22 @@ const AppLayout = ({ children }) => {
     connectWebSocket,
     disconnectWebSocket,
   } = useNotificationStore();
+
+  const refreshChatUnreadCount = useCallback(async () => {
+    if (!isAuthenticated()) {
+      setChatUnreadCount(0);
+      return;
+    }
+
+    try {
+      const res = await chatService.getRooms();
+      const rooms = res.data?.results || res.data || [];
+      const unread = rooms.reduce((sum, room) => sum + Number(room.unread_count || 0), 0);
+      setChatUnreadCount(unread);
+    } catch {
+      // Keep the previous unread badge value on transient failures.
+    }
+  }, []);
 
   // Initialize auth state from Zustand on first load
   useEffect(() => {
@@ -102,6 +120,20 @@ const AppLayout = ({ children }) => {
     // Global notification polling/socket app bo'ylab bitta marta boshqariladi.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    void refreshChatUnreadCount();
+
+    const handleChatRoomsUpdated = () => {
+      void refreshChatUnreadCount();
+    };
+
+    window.addEventListener('chat:rooms-updated', handleChatRoomsUpdated);
+
+    return () => {
+      window.removeEventListener('chat:rooms-updated', handleChatRoomsUpdated);
+    };
+  }, [refreshChatUnreadCount]);
 
   const extractRoomId = (actionUrl) => {
     if (!actionUrl) return null;
@@ -154,7 +186,7 @@ const AppLayout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
-      <Header user={user} notifications={unreadCount} />
+      <Header user={user} notifications={unreadCount} messages={chatUnreadCount} />
       <Sidebar />
       <main className="page-container md:ml-64">
         <AnimatePresence mode="wait">
