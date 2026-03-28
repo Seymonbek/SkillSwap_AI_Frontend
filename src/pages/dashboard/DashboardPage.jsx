@@ -119,7 +119,7 @@ export const DashboardPage = () => {
 
   if (loading) {
     return (
-      <div className="p-4 space-y-4">
+      <div className="p-4 sm:p-6 space-y-4">
         <div className="glass-card h-32 animate-pulse" />
         <div className="grid grid-cols-2 gap-4">
           {[1, 2, 3, 4].map(i => (
@@ -132,7 +132,7 @@ export const DashboardPage = () => {
   }
 
   return (
-    <div className="min-h-screen p-4 pb-24">
+    <div className="min-h-screen p-4 sm:p-6 pb-24">
       {/* Background */}
       <div className="blob-bg">
         <div className="blob blob-1" style={{ width: '300px', height: '300px', opacity: 0.15 }} />
@@ -150,7 +150,7 @@ export const DashboardPage = () => {
           <div className="glass-card p-6 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-transparent to-purple-500/10" />
             <div className="relative z-10">
-              <h1 className="text-2xl font-bold text-white mb-1">
+                <h1 className="text-xl sm:text-2xl font-bold text-white mb-1">
                 Salom, <span className="neon-text">{user?.first_name || 'Foydalanuvchi'}</span>! 👋
               </h1>
               <p className="text-slate-400">Bugungi ish kuniga tayyor!</p>
@@ -159,7 +159,7 @@ export const DashboardPage = () => {
         </motion.div>
 
         {/* Stats Grid */}
-        <motion.div variants={fadeInUp} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <motion.div variants={fadeInUp} className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           {statCards.map((stat, index) => (
             <div key={index} className="glass-card p-4 group hover:scale-[1.02] transition-transform">
               <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
@@ -177,7 +177,7 @@ export const DashboardPage = () => {
             <Zap className="w-5 h-5 text-emerald-400" />
             Tezkor harakatlar
           </h2>
-          <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {quickActions.map((action, index) => (
               <button
                 key={index}
@@ -195,7 +195,7 @@ export const DashboardPage = () => {
 
         {/* Recent Jobs */}
         <motion.div variants={fadeInUp}>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
               <Briefcase className="w-5 h-5 text-blue-400" />
               So'nggi ishlar
@@ -214,11 +214,11 @@ export const DashboardPage = () => {
                 onClick={() => navigate(`/jobs/${job.id}`)}
                 className="glass-card p-4 cursor-pointer hover:bg-white/5 transition-colors"
               >
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-white truncate">{job.title}</h3>
                     <p className="text-sm text-slate-400 mt-1 line-clamp-1">{job.description}</p>
-                    <div className="flex items-center gap-4 mt-2">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2">
                       <span className="text-emerald-400 font-semibold text-sm">
                         ${job.budget_min || 0} - ${job.budget_max || 0}
                       </span>
@@ -247,7 +247,7 @@ export const DashboardPage = () => {
 
         {/* Recent Chats */}
         <motion.div variants={fadeInUp}>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-violet-400" />
               So'nggi suhbatlar
@@ -294,7 +294,7 @@ export const DashboardPage = () => {
         {/* Recent Mentorships */}
         {mentorships.length > 0 && (
           <motion.div variants={fadeInUp}>
-            <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-amber-400" />
                 Mentorlik
@@ -309,7 +309,7 @@ export const DashboardPage = () => {
             <div className="space-y-3">
               {mentorships.map(item => (
                 <div key={item.id} className="glass-card p-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <h4 className="font-medium text-white text-sm">
                         {item.skill_offered || item.mentor_name || 'Mentorlik'}

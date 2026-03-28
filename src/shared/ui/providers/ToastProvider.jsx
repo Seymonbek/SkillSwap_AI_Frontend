@@ -68,7 +68,7 @@ export const ToastProvider = ({ children }) => {
       {children}
       
       {/* Toast Container */}
-      <div className="fixed top-4 right-4 z-[100] flex flex-col gap-3 pointer-events-none">
+      <div className="fixed top-4 left-4 right-4 sm:left-auto sm:right-4 z-[100] flex flex-col gap-3 pointer-events-none">
         <AnimatePresence mode="popLayout">
           {toasts.map((toast) => (
             <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />
@@ -94,7 +94,7 @@ const ToastItem = ({ toast, onRemove }) => {
       <div 
         className={`
           flex items-center gap-3 px-4 py-3 rounded-xl border backdrop-blur-xl
-          shadow-lg min-w-[300px] max-w-[400px]
+          shadow-lg w-full sm:min-w-[300px] sm:max-w-[400px]
           ${styles[toast.type]}
         `}
       >

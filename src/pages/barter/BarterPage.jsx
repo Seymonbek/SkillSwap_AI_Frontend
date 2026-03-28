@@ -752,7 +752,7 @@ export const BarterPage = () => {
   const normalizedMatchResult = normalizeMatchmakingResponse(matchResult);
 
   return (
-    <div className="min-h-screen p-4 pb-24">
+    <div className="min-h-screen p-4 sm:p-6 pb-24">
       {/* Toast notifications */}
       <AnimatePresence>
         {successMsg && (
@@ -1129,7 +1129,7 @@ export const BarterPage = () => {
                 {/* Session Type Toggle */}
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Dars turi</label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button type="button" onClick={() => setRequestType('single')}
                       className={`py-3 rounded-xl font-medium transition-all text-sm ${requestType === 'single' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25' : 'bg-slate-800 text-slate-400'}`}>
                       ⚡ Bir martalik dars
@@ -1144,7 +1144,7 @@ export const BarterPage = () => {
                 {requestType === 'single' ? (
                   <>
                     {/* One-time session fields */}
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs text-slate-400 mb-1">Sana</label>
                         <input type="date" required value={requestForm.date} onChange={(e) => setRequestForm({ ...requestForm, date: e.target.value })}
@@ -1158,10 +1158,10 @@ export const BarterPage = () => {
                     </div>
                     <div>
                       <label className="block text-xs text-slate-400 mb-1">Davomiyligi</label>
-                      <div className="flex gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         {[30, 60, 90, 120].map((m) => (
                           <button key={m} type="button" onClick={() => setRequestForm({ ...requestForm, duration_minutes: m })}
-                            className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${requestForm.duration_minutes === m ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                            className={`py-2 rounded-xl text-sm font-medium transition-all ${requestForm.duration_minutes === m ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
                             {m} daq
                           </button>
                         ))}
@@ -1173,10 +1173,10 @@ export const BarterPage = () => {
                     {/* Mentorship fields */}
                     <div>
                       <label className="block text-sm font-medium text-slate-300 mb-2">Davomiyligi (oy)</label>
-                      <div className="flex gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         {[1, 3, 6, 12].map((month) => (
                           <button key={month} type="button" onClick={() => setRequestForm({ ...requestForm, duration_months: month })}
-                            className={`flex-1 py-2.5 rounded-xl font-medium transition-all ${requestForm.duration_months === month ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
+                            className={`py-2.5 rounded-xl font-medium transition-all ${requestForm.duration_months === month ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
                             {month} oy
                           </button>
                         ))}
@@ -1191,7 +1191,7 @@ export const BarterPage = () => {
                     placeholder={requestType === 'single' ? "Qaysi mavzu bo'yicha dars olmoqchisiz?" : "Nima o'rganmoqchisiz?"}
                     rows={3} className="glass-input w-full resize-none" required={requestType === 'mentor'} />
                 </div>
-                <div className="flex gap-3 pt-2">
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
                   <button type="button" onClick={closeRequestModal} className="btn-secondary flex-1 py-3">Bekor qilish</button>
                   <button type="submit" disabled={submitting} className="btn-primary flex-1 py-3 flex items-center justify-center gap-2">
                     {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Send className="w-4 h-4" /> Yuborish</>}
@@ -1338,7 +1338,7 @@ export const BarterPage = () => {
                 </button>
               </div>
               <form onSubmit={handleScheduleSession} className="p-6 space-y-5">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">Sana</label>
                     <input type="date" required value={scheduleForm.date} onChange={(e) => setScheduleForm({ ...scheduleForm, date: e.target.value })}
@@ -1360,7 +1360,7 @@ export const BarterPage = () => {
                     <option value={120}>120 daqiqa (2 soat)</option>
                   </select>
                 </div>
-                <div className="flex gap-3 pt-4">
+                <div className="flex flex-col sm:flex-row gap-3 pt-4">
                   <button type="button" onClick={closeScheduleModal} className="btn-secondary flex-1 py-3">Bekor qilish</button>
                   <button type="submit" disabled={submitting} className="btn-primary flex-1 py-3">
                     {submitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Belgilash'}
@@ -1390,7 +1390,7 @@ export const BarterPage = () => {
                 <p className="text-sm text-slate-400">
                   Mentorlik so&apos;rovi uchun qulay vaqt taklif qiling. Bu vaqt keyin qabul qilish uchun ishlatiladi.
                 </p>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">Sana</label>
                     <input
@@ -1412,7 +1412,7 @@ export const BarterPage = () => {
                     />
                   </div>
                 </div>
-                <div className="flex gap-3 pt-4">
+                <div className="flex flex-col sm:flex-row gap-3 pt-4">
                   <button type="button" onClick={closeNegotiationModal} className="btn-secondary flex-1 py-3">Bekor qilish</button>
                   <button type="submit" disabled={submitting} className="btn-primary flex-1 py-3 flex items-center justify-center gap-2">
                     {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Vaqtni yuborish'}
@@ -1500,7 +1500,7 @@ const MentorCard = ({ mentor, onRequest, isRequested }) => {
             </span>
           </div>
 
-          <div className="flex gap-3 mt-4">
+          <div className="flex flex-wrap gap-3 mt-4">
             {isRequested ? (
               <button disabled className="btn-secondary px-4 py-2 text-sm text-emerald-400 flex items-center gap-2 opacity-100 border-emerald-500/20 bg-emerald-500/10 cursor-default">
                 <CheckCircle2 className="w-4 h-4" /> So&apos;rov yuborilgan
@@ -1566,7 +1566,7 @@ const RequestCard = ({ request, onAccept, onReject, onNegotiate, onOpenChat, onS
             </div>
           )}
           {(getChatRoomId(request) || getId(partner)) && (
-            <div className="flex gap-2 mt-3">
+            <div className="flex flex-wrap gap-2 mt-3">
               <button onClick={onOpenChat} className="px-3 py-1.5 bg-violet-500/10 text-violet-300 rounded-lg text-sm font-medium hover:bg-violet-500/20 transition-colors flex items-center gap-1">
                 <MessageSquare className="w-4 h-4" /> Chatga o&apos;tish
               </button>
@@ -1578,7 +1578,7 @@ const RequestCard = ({ request, onAccept, onReject, onNegotiate, onOpenChat, onS
             </div>
           )}
           {isReceived && ['PENDING', 'NEGOTIATING'].includes(request.status) && (
-            <div className="flex gap-2 mt-3">
+            <div className="flex flex-wrap gap-2 mt-3">
               <button onClick={onNegotiate} disabled={actionLoading === `negotiate:${request.id}`} className="px-3 py-1.5 bg-blue-500/10 text-blue-400 rounded-lg text-sm font-medium hover:bg-blue-500/20 transition-colors">
                 {toArray(request.proposed_schedule).length > 0 ? 'Vaqtni yangilash' : 'Vaqt taklif qilish'}
               </button>
@@ -1591,28 +1591,28 @@ const RequestCard = ({ request, onAccept, onReject, onNegotiate, onOpenChat, onS
             </div>
           )}
           {isStudent && ['PENDING', 'NEGOTIATING'].includes(request.status) && onNegotiate && (
-            <div className="flex gap-2 mt-3">
+            <div className="flex flex-wrap gap-2 mt-3">
               <button onClick={onNegotiate} disabled={actionLoading === `negotiate:${request.id}`} className="px-3 py-1.5 bg-blue-500/10 text-blue-400 rounded-lg text-sm font-medium hover:bg-blue-500/20 transition-colors">
                 {toArray(request.proposed_schedule).length > 0 ? 'Yangi vaqt taklif qilish' : 'Vaqt taklif qilish'}
               </button>
             </div>
           )}
           {request.status === 'ACCEPTED' && isStudent && onSchedule && (
-            <div className="flex gap-2 mt-3">
+            <div className="flex flex-wrap gap-2 mt-3">
               <button onClick={onSchedule} className="px-3 py-1.5 bg-blue-500/10 text-blue-400 rounded-lg text-sm font-medium hover:bg-blue-500/20 transition-colors flex items-center gap-1">
                 <Calendar className="w-4 h-4" /> Sessiya belgilash
               </button>
             </div>
           )}
           {request.status === 'ACCEPTED' && onComplete && (
-            <div className="flex gap-2 mt-3">
+            <div className="flex flex-wrap gap-2 mt-3">
               <button onClick={onComplete} disabled={actionLoading === `complete:${request.id}`} className="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg text-sm font-medium hover:bg-emerald-500/20 transition-colors">
                 {actionLoading === `complete:${request.id}` ? 'Yakunlanmoqda...' : 'Mentorlikni yakunlash'}
               </button>
             </div>
           )}
           {isStudent && ['PENDING', 'NEGOTIATING'].includes(request.status) && onCancel && (
-            <div className="flex gap-2 mt-3">
+            <div className="flex flex-wrap gap-2 mt-3">
               <button onClick={onCancel} disabled={actionLoading === `cancel:${request.id}`} className="px-3 py-1.5 bg-red-500/10 text-red-400 rounded-lg text-sm font-medium hover:bg-red-500/20 transition-colors">
                 {actionLoading === `cancel:${request.id}` ? 'Bekor qilinmoqda...' : 'Bekor qilish'}
               </button>

@@ -909,7 +909,7 @@ export const VideoPage = () => {
     : null;
 
   return (
-    <div className="min-h-screen p-4 pb-24">
+    <div className="min-h-screen p-4 sm:p-6 pb-24">
       <div className="blob-bg">
         <div className="blob blob-1" style={{ width: '250px', height: '250px', opacity: 0.1 }} />
       </div>
@@ -917,7 +917,7 @@ export const VideoPage = () => {
       <div className="max-w-4xl mx-auto space-y-6 relative z-10">
         {!isInCall ? (
           <>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
                   <Video className="w-6 h-6 text-purple-400" />
@@ -931,7 +931,7 @@ export const VideoPage = () => {
               </div>
               <button
                 onClick={() => navigate('/chat')}
-                className="btn-primary flex items-center gap-2"
+                className="btn-primary w-full sm:w-auto flex items-center justify-center gap-2"
               >
                 <Video className="w-4 h-4" />
                 Yangi qo&apos;ng&apos;iroq
@@ -945,7 +945,7 @@ export const VideoPage = () => {
                     <div
                       key={call.id}
                       onClick={() => startCall(call.room_id || call.room)}
-                      className="p-4 flex items-center gap-4 cursor-pointer hover:bg-white/5 transition-colors"
+                      className="p-4 flex items-start sm:items-center gap-4 cursor-pointer hover:bg-white/5 transition-colors"
                     >
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-semibold">
                         {call.participant_name?.charAt(0).toUpperCase() || <User className="w-5 h-5" />}
@@ -956,7 +956,7 @@ export const VideoPage = () => {
                           {call.call_type === 'VIDEO' ? "Video qo'ng'iroq" : "Audio qo'ng'iroq"}
                         </p>
                       </div>
-                      <div className="text-right">
+                      <div className="text-left sm:text-right">
                         <span className={`px-2 py-1 rounded-full text-xs ${call.status === 'COMPLETED'
                           ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                           : 'bg-slate-800 text-slate-400 border border-white/5'
@@ -1031,7 +1031,7 @@ export const VideoPage = () => {
                 <textarea rows={3} value={reviewForm.comment} onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
                   className="glass-input w-full" placeholder="Dars qanday o'tdi?" />
               </div>
-              <div className="flex gap-3 pt-2">
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <button type="button" onClick={closeReviewModal} className="btn-secondary flex-1 py-3">
                   Keyinroq
                 </button>

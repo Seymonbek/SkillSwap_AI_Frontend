@@ -61,7 +61,7 @@ export const SubscriptionsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen p-4 pb-24">
+      <div className="min-h-screen p-4 sm:p-6 pb-24">
         <div className="max-w-4xl mx-auto space-y-4">
           <div className="glass-card h-32 animate-pulse" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -73,7 +73,7 @@ export const SubscriptionsPage = () => {
   }
 
   return (
-    <div className="min-h-screen p-4 pb-24">
+    <div className="min-h-screen p-4 sm:p-6 pb-24">
       <div className="blob-bg">
         <div className="blob blob-2" style={{ width: '300px', height: '300px', opacity: 0.1 }} />
       </div>
@@ -169,7 +169,7 @@ export const SubscriptionsPage = () => {
               </div>
             );
           }) : (
-            <div className="glass-card p-12 text-center col-span-3">
+            <div className="glass-card p-12 text-center col-span-full">
               <Crown className="w-16 h-16 text-slate-600 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-white mb-2">Tariflar hozircha yo&apos;q</h3>
               <p className="text-slate-400">Tez orada premium tariflar qo&apos;shiladi</p>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { freelanceService } from '@/shared/api';
@@ -24,7 +24,6 @@ const staggerContainer = {
 };
 
 export const JobsPage = () => {
-  const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,9 +38,7 @@ export const JobsPage = () => {
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiGenerating, setAiGenerating] = useState(false);
 
-  useEffect(() => { fetchJobs(); }, [filterStatus]);
-
-  const fetchJobs = async () => {
+  const fetchJobs = useCallback(async () => {
     try {
       setLoading(true);
       const params = filterStatus !== 'all' ? { status: filterStatus } : {};
@@ -52,7 +49,11 @@ export const JobsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterStatus]);
+
+  useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
 
   const handleAIGenerate = async () => {
     if (!aiPrompt.trim()) return;
@@ -111,7 +112,7 @@ export const JobsPage = () => {
   ];
 
   return (
-    <div className="min-h-screen p-4 pb-24">
+    <div className="min-h-screen p-4 sm:p-6 pb-24">
       {/* Background */}
       <div className="blob-bg">
         <div className="blob blob-1" style={{ width: '300px', height: '300px', opacity: 0.15 }} />
@@ -134,17 +135,17 @@ export const JobsPage = () => {
               {jobs.length} ta ish mavjud
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex w-full sm:w-auto flex-col sm:flex-row gap-3">
             <button
               onClick={() => setShowAIGenerate(true)}
-              className="btn-secondary flex items-center gap-2 px-4 py-3"
+              className="btn-secondary flex items-center justify-center gap-2 px-4 py-3"
             >
               <Wand2 className="w-5 h-5" />
               AI Yaratish
             </button>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="btn-primary flex items-center gap-2 px-6 py-3"
+              className="btn-primary flex items-center justify-center gap-2 px-6 py-3"
             >
               <Plus className="w-5 h-5" />
               Ish yaratish
@@ -257,7 +258,7 @@ export const JobsPage = () => {
                     AI sizga sarlavha, tavsif, byudjet va kerakli ko\'nikmalarni taklif qiladi
                   </p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={() => setShowAIGenerate(false)}
                     className="btn-secondary flex-1 py-3"
@@ -327,7 +328,7 @@ export const JobsPage = () => {
                   required
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Byudjet ($)</label>
                   <input
@@ -359,7 +360,7 @@ export const JobsPage = () => {
                 />
                 <p className="text-xs text-slate-500 mt-1">Vergul bilan ajrating</p>
               </div>
-              <div className="flex gap-3 pt-4">
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}

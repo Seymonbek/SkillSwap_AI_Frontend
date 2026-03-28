@@ -1,20 +1,42 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authService } from '@/shared/api';
+import { buildDirectChatLink } from '@/shared/lib/utils';
 import {
   Mail, Phone, MapPin, Calendar, Star, Briefcase,
   Award, LogOut, ChevronRight, Camera, Edit3,
   Wallet, Shield, Bell, X, Check, Loader2,
   Code, TrendingUp, BookOpen, Crown, FileText,
-  AlertTriangle, Plus, AlertCircle, QrCode
+  AlertTriangle, Plus, AlertCircle, QrCode, MessageSquare
 } from 'lucide-react';
 
 const fadeInUp = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
 const staggerContainer = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
 
+const parseTaggedSkills = (skills = [], prefix) =>
+  skills
+    .filter((skill) => typeof skill === 'string' && skill.startsWith(prefix))
+    .map((skill) => skill.replace(prefix, '').trim())
+    .filter(Boolean);
+
+const normalizeProfileData = (data = {}) => {
+  const directOffered = Array.isArray(data.skills_offered) ? data.skills_offered : [];
+  const directWanted = Array.isArray(data.skills_wanted) ? data.skills_wanted : [];
+  const taggedSkills = Array.isArray(data.skills) ? data.skills : [];
+
+  return {
+    ...data,
+    skills_offered: directOffered.length > 0 ? directOffered : parseTaggedSkills(taggedSkills, '[O]'),
+    skills_wanted: directWanted.length > 0 ? directWanted : parseTaggedSkills(taggedSkills, '[W]'),
+  };
+};
+
 export const ProfilePage = () => {
   const navigate = useNavigate();
+  const { id: profileId } = useParams();
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const isOwnProfile = !profileId || String(profileId) === String(currentUser.id);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -42,66 +64,81 @@ export const ProfilePage = () => {
   const avatarInputRef = useRef(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  useEffect(() => {
-    fetchProfile();
-    fetchPortfolio();
-    fetchReviews();
-    fetchSkillTests();
-  }, []);
-
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
-      const res = await authService.getMe();
-      const offered = Array.isArray(res.data.skills_offered) ? res.data.skills_offered : [];
-      const wanted = Array.isArray(res.data.skills_wanted) ? res.data.skills_wanted : [];
-      
-      const userData = {
-        ...res.data,
-        skills_offered: offered,
-        skills_wanted: wanted,
-      };
+      const res = isOwnProfile
+        ? await authService.getMe()
+        : await authService.getUserByIdSearch(profileId);
+      const userData = normalizeProfileData(res.data);
+
       setUser(userData);
       setEditForm({
         ...userData,
-        skills_offered: offered.join(', '),
-        skills_wanted: wanted.join(', '),
+        skills_offered: userData.skills_offered.join(', '),
+        skills_wanted: userData.skills_wanted.join(', '),
       });
+
+      if (isOwnProfile) {
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
     } catch (err) {
       console.error('Fetch profile error:', err);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [isOwnProfile, profileId]);
 
-  const fetchPortfolio = async () => {
+  const fetchPortfolio = useCallback(async () => {
+    if (!isOwnProfile) return;
     try {
       const res = await authService.getPortfolio();
       setPortfolio(res.data?.results || res.data || []);
     } catch (err) {
       console.error('Fetch portfolio error:', err);
     }
-  };
+  }, [isOwnProfile]);
 
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
+    if (!isOwnProfile) return;
     try {
       const res = await authService.getReviews();
       setReviews(res.data?.results || res.data || []);
     } catch (err) {
       console.error('Fetch reviews error:', err);
     }
-  };
+  }, [isOwnProfile]);
 
-  const fetchSkillTests = async () => {
+  const fetchSkillTests = useCallback(async () => {
+    if (!isOwnProfile) return;
     try {
       const res = await authService.getSkillTests();
       setSkillTests(res.data?.results || res.data || []);
     } catch (err) {
       console.error('Fetch skill tests error:', err);
     }
-  };
+  }, [isOwnProfile]);
+
+  useEffect(() => {
+    const loadProfilePage = async () => {
+      setLoading(true);
+      await fetchProfile();
+
+      if (isOwnProfile) {
+        await Promise.all([fetchPortfolio(), fetchReviews(), fetchSkillTests()]);
+      } else {
+        setPortfolio([]);
+        setReviews([]);
+        setSkillTests([]);
+      }
+
+      setLoading(false);
+    };
+
+    loadProfilePage();
+  }, [fetchPortfolio, fetchProfile, fetchReviews, fetchSkillTests, isOwnProfile]);
 
   // Avatar upload
   const handleAvatarUpload = async (e) => {
+    if (!isOwnProfile) return;
+
     const file = e.target.files[0];
     if (!file) return;
 
@@ -112,8 +149,9 @@ export const ProfilePage = () => {
       const res = await authService.updateMe(formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setUser(res.data);
-      localStorage.setItem('user', JSON.stringify(res.data));
+      const updatedUser = normalizeProfileData(res.data);
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
     } catch (err) {
       console.error('Avatar upload error:', err);
     } finally {
@@ -124,6 +162,7 @@ export const ProfilePage = () => {
   // Profile edit save
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!isOwnProfile) return;
     setSaving(true);
     try {
       const offeredSkills = (editForm.skills_offered || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -139,12 +178,14 @@ export const ProfilePage = () => {
         skills_wanted: wantedSkills,
       };
       const res = await authService.updateMe(saveData);
-      setUser({
-        ...res.data,
-        skills_offered: (res.data.skills || []).filter(s => typeof s === 'string' && s.startsWith('[O]')).map(s => s.replace('[O]', '')),
-        skills_wanted: (res.data.skills || []).filter(s => typeof s === 'string' && s.startsWith('[W]')).map(s => s.replace('[W]', '')),
+      const updatedUser = normalizeProfileData(res.data);
+      setUser(updatedUser);
+      setEditForm({
+        ...updatedUser,
+        skills_offered: updatedUser.skills_offered.join(', '),
+        skills_wanted: updatedUser.skills_wanted.join(', '),
       });
-      localStorage.setItem('user', JSON.stringify(res.data));
+      localStorage.setItem('user', JSON.stringify(updatedUser));
       setShowEditModal(false);
     } catch (err) {
       console.error('Save profile error:', err);
@@ -251,7 +292,7 @@ export const ProfilePage = () => {
   }
 
   return (
-    <div className="min-h-screen p-4 pb-24">
+    <div className="min-h-screen p-4 sm:p-6 pb-24">
       <div className="blob-bg">
         <div className="blob blob-1" style={{ width: '300px', height: '300px', opacity: 0.15 }} />
       </div>
@@ -277,21 +318,25 @@ export const ProfilePage = () => {
                       {user?.first_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
-                  <button
-                    onClick={() => avatarInputRef.current?.click()}
-                    disabled={uploadingAvatar}
-                    className="absolute bottom-0 right-0 p-2 bg-slate-800 rounded-full border border-slate-700 shadow-lg hover:bg-slate-700 transition-colors disabled:opacity-50"
-                  >
-                    {uploadingAvatar ? <Loader2 className="w-5 h-5 text-slate-400 animate-spin" /> : <Camera className="w-5 h-5 text-slate-400" />}
-                  </button>
+                  {isOwnProfile && (
+                    <>
+                      <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+                      <button
+                        onClick={() => avatarInputRef.current?.click()}
+                        disabled={uploadingAvatar}
+                        className="absolute bottom-0 right-0 p-2 bg-slate-800 rounded-full border border-slate-700 shadow-lg hover:bg-slate-700 transition-colors disabled:opacity-50"
+                      >
+                        {uploadingAvatar ? <Loader2 className="w-5 h-5 text-slate-400 animate-spin" /> : <Camera className="w-5 h-5 text-slate-400" />}
+                      </button>
+                    </>
+                  )}
                 </div>
 
                 <h2 className="mt-4 text-2xl font-bold text-white">{user?.first_name} {user?.last_name}</h2>
                 <p className="text-slate-400">{user?.email}</p>
                 {user?.bio && <p className="text-slate-300 text-sm mt-2 text-center max-w-md">{user.bio}</p>}
 
-                <div className="flex items-center gap-2 mt-3">
+                <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
                   {user?.is_verified && (
                     <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-full text-sm font-medium border border-emerald-500/20 flex items-center gap-1">
                       <Shield className="w-4 h-4" /> Tasdiqlangan
@@ -304,22 +349,44 @@ export const ProfilePage = () => {
                   )}
                 </div>
 
-                <div className="flex gap-3 mt-5">
-                  <button onClick={() => setShowEditModal(true)} className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm">
-                    <Edit3 className="w-4 h-4" /> Tahrirlash
-                  </button>
-                  <button onClick={handleLogout} className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:text-red-300">
-                    <LogOut className="w-4 h-4" /> Chiqish
-                  </button>
+                <div className="flex flex-col sm:flex-row gap-3 mt-5 w-full sm:w-auto">
+                  {isOwnProfile ? (
+                    <>
+                      <button onClick={() => setShowEditModal(true)} className="btn-secondary flex items-center justify-center gap-2 px-4 py-2 text-sm">
+                        <Edit3 className="w-4 h-4" /> Tahrirlash
+                      </button>
+                      <button onClick={handleLogout} className="btn-secondary flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-400 hover:text-red-300">
+                        <LogOut className="w-4 h-4" /> Chiqish
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => navigate(buildDirectChatLink(user))}
+                      className="btn-primary flex items-center justify-center gap-2 px-4 py-2 text-sm"
+                    >
+                      <MessageSquare className="w-4 h-4" /> Xabar yozish
+                    </button>
+                  )}
                 </div>
               </div>
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/5">
-                <StatBox icon={Briefcase} value={user?.total_jobs || '0'} label="Ishlar" color="text-blue-400" />
-                <StatBox icon={Wallet} value={user?.balance || user?.tokens || '0'} label="Balans" color="text-emerald-400" />
-                <StatBox icon={Star} value={user?.rating || '0.0'} label="Reyting" color="text-amber-400" />
-                <StatBox icon={BookOpen} value={portfolio.length} label="Portfolio" color="text-violet-400" />
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/5">
+                {isOwnProfile ? (
+                  <>
+                    <StatBox icon={Briefcase} value={user?.total_jobs || '0'} label="Ishlar" color="text-blue-400" />
+                    <StatBox icon={Wallet} value={user?.balance || user?.tokens || '0'} label="Balans" color="text-emerald-400" />
+                    <StatBox icon={Star} value={user?.rating || '0.0'} label="Reyting" color="text-amber-400" />
+                    <StatBox icon={BookOpen} value={portfolio.length} label="Portfolio" color="text-violet-400" />
+                  </>
+                ) : (
+                  <>
+                    <StatBox icon={Briefcase} value={user?.total_jobs || '0'} label="Ishlar" color="text-blue-400" />
+                    <StatBox icon={Star} value={user?.rating || user?.freelance_rating || '0.0'} label="Reyting" color="text-amber-400" />
+                    <StatBox icon={BookOpen} value={user?.skills_offered?.length || 0} label="O'rgatadi" color="text-emerald-400" />
+                    <StatBox icon={Award} value={user?.skills_wanted?.length || 0} label="O'rganadi" color="text-violet-400" />
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -355,171 +422,191 @@ export const ProfilePage = () => {
           </motion.div>
         )}
 
-        {/* Tabs */}
-        <motion.div variants={fadeInUp} className="flex gap-2">
-          {[
-            { id: 'info', label: "Ma'lumotlar", icon: Award },
-            { id: 'portfolio', label: 'Portfolio', icon: Code, badge: portfolio.length },
-            { id: 'reviews', label: 'Sharhlar', icon: Star, badge: reviews.length },
-            { id: 'skills', label: 'Skill Test', icon: TrendingUp, badge: skillTests.length },
-          ].map((tab) => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-all ${
-                activeTab === tab.id ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'text-slate-400 hover:bg-white/5'
-              }`}>
-              <tab.icon className="w-4 h-4" />
-              <span className="text-sm hidden sm:inline">{tab.label}</span>
-              {tab.badge > 0 && <span className="px-1.5 py-0.5 bg-slate-700 text-slate-300 text-xs rounded-full">{tab.badge}</span>}
-            </button>
-          ))}
-        </motion.div>
-
-        {/* Tab Content */}
-        <motion.div variants={fadeInUp}>
-          <AnimatePresence mode="wait">
-            {activeTab === 'info' && (
-              <motion.div key="info" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="glass-card p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
-                    <Award className="w-5 h-5 text-white" />
-                  </div>
-                  <h3 className="text-lg font-bold text-white">Ma&apos;lumotlar</h3>
-                </div>
-                <div className="space-y-4">
-                  <InfoRow icon={Mail} label="Email" value={user?.email} />
-                  <InfoRow icon={Phone} label="Telefon" value={user?.phone || "Qo'shilmagan"} />
-                  <InfoRow icon={MapPin} label="Joylashuv" value={user?.location || "Ko'rsatilmagan"} />
-                  <InfoRow icon={Calendar} label="Qo'shilgan" value={user?.date_joined ? new Date(user.date_joined).toLocaleDateString('uz-UZ') : '-'} />
-                </div>
-              </motion.div>
-            )}
-
-            {activeTab === 'portfolio' && (
-              <motion.div key="portfolio" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
-                <button onClick={() => setShowPortfolioModal(true)} className="btn-primary flex items-center gap-2">
-                  <Plus className="w-4 h-4" /> Loyiha qo&apos;shish
+        {isOwnProfile ? (
+          <>
+            {/* Tabs */}
+            <motion.div variants={fadeInUp} className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+              {[
+                { id: 'info', label: "Ma'lumotlar", icon: Award },
+                { id: 'portfolio', label: 'Portfolio', icon: Code, badge: portfolio.length },
+                { id: 'reviews', label: 'Sharhlar', icon: Star, badge: reviews.length },
+                { id: 'skills', label: 'Skill Test', icon: TrendingUp, badge: skillTests.length },
+              ].map((tab) => (
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                  className={`min-w-[132px] sm:min-w-0 sm:flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-all ${
+                    activeTab === tab.id ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'text-slate-400 hover:bg-white/5'
+                  }`}>
+                  <tab.icon className="w-4 h-4" />
+                  <span className="text-sm">{tab.label}</span>
+                  {tab.badge > 0 && <span className="px-1.5 py-0.5 bg-slate-700 text-slate-300 text-xs rounded-full">{tab.badge}</span>}
                 </button>
-                {portfolio.length === 0 ? (
-                  <div className="glass-card p-6 text-center">
-                    <Code className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-                    <p className="text-slate-400">Portfolio bo&apos;sh</p>
-                  </div>
-                ) : (
-                  portfolio.map((item) => (
-                    <div key={item.id} className="glass-card p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-white">{item.title}</h4>
-                          <p className="text-sm text-slate-400 mt-1">{item.description}</p>
-                          {item.url && (
-                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-emerald-400 text-sm underline mt-1 block">
-                              Loyihani ko&apos;rish
-                            </a>
-                          )}
-                          <div className="flex gap-2 mt-2">
-                            {item.technologies?.map((tech) => (
-                              <span key={tech} className="px-2 py-1 bg-slate-800 rounded text-xs text-slate-300">{tech}</span>
-                            ))}
+              ))}
+            </motion.div>
+
+            {/* Tab Content */}
+            <motion.div variants={fadeInUp}>
+              <AnimatePresence mode="wait">
+                {activeTab === 'info' && (
+                  <motion.div key="info" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="glass-card p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                        <Award className="w-5 h-5 text-white" />
+                      </div>
+                      <h3 className="text-lg font-bold text-white">Ma&apos;lumotlar</h3>
+                    </div>
+                    <div className="space-y-4">
+                      <InfoRow icon={Mail} label="Email" value={user?.email} />
+                      <InfoRow icon={Phone} label="Telefon" value={user?.phone || "Qo'shilmagan"} />
+                      <InfoRow icon={MapPin} label="Joylashuv" value={user?.location || "Ko'rsatilmagan"} />
+                      <InfoRow icon={Calendar} label="Qo'shilgan" value={user?.date_joined ? new Date(user.date_joined).toLocaleDateString('uz-UZ') : '-'} />
+                    </div>
+                  </motion.div>
+                )}
+
+                {activeTab === 'portfolio' && (
+                  <motion.div key="portfolio" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
+                    <button onClick={() => setShowPortfolioModal(true)} className="btn-primary flex items-center gap-2">
+                      <Plus className="w-4 h-4" /> Loyiha qo&apos;shish
+                    </button>
+                    {portfolio.length === 0 ? (
+                      <div className="glass-card p-6 text-center">
+                        <Code className="w-12 h-12 text-slate-500 mx-auto mb-4" />
+                        <p className="text-slate-400">Portfolio bo&apos;sh</p>
+                      </div>
+                    ) : (
+                      portfolio.map((item) => (
+                        <div key={item.id} className="glass-card p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-white">{item.title}</h4>
+                              <p className="text-sm text-slate-400 mt-1">{item.description}</p>
+                              {item.url && (
+                                <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-emerald-400 text-sm underline mt-1 block">
+                                  Loyihani ko&apos;rish
+                                </a>
+                              )}
+                              <div className="flex gap-2 mt-2">
+                                {item.technologies?.map((tech) => (
+                                  <span key={tech} className="px-2 py-1 bg-slate-800 rounded text-xs text-slate-300">{tech}</span>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 ml-4">
+                              {item.ai_rating && (
+                                <div className="flex items-center gap-1">
+                                  <Star className="w-4 h-4 text-amber-400" />
+                                  <span className="text-sm text-slate-300">{item.ai_rating}</span>
+                                </div>
+                              )}
+                              <button onClick={() => handleDeletePortfolio(item.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition-colors">
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 ml-4">
-                          {item.ai_rating && (
-                            <div className="flex items-center gap-1">
-                              <Star className="w-4 h-4 text-amber-400" />
-                              <span className="text-sm text-slate-300">{item.ai_rating}</span>
+                      ))
+                    )}
+                  </motion.div>
+                )}
+
+                {activeTab === 'reviews' && (
+                  <motion.div key="reviews" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
+                    {reviews.length === 0 ? (
+                      <div className="glass-card p-6 text-center">
+                        <Star className="w-12 h-12 text-slate-500 mx-auto mb-4" />
+                        <p className="text-slate-400">Sharhlar yo&apos;q</p>
+                      </div>
+                    ) : (
+                      reviews.map((review) => (
+                        <div key={review.id} className="glass-card p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0">
+                              {[...Array(5)].map((_, i) => (
+                                <Star key={i} className={`w-4 h-4 inline ${i < review.rating ? 'text-amber-400' : 'text-slate-600'}`} />
+                              ))}
                             </div>
-                          )}
-                          <button onClick={() => handleDeletePortfolio(item.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition-colors">
-                            <X className="w-4 h-4" />
-                          </button>
+                            <div>
+                              <p className="text-slate-300">{review.comment}</p>
+                              <p className="text-sm text-slate-500 mt-1">{new Date(review.created_at).toLocaleDateString('uz-UZ')}</p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  ))
+                      ))
+                    )}
+                  </motion.div>
                 )}
-              </motion.div>
-            )}
 
-            {activeTab === 'reviews' && (
-              <motion.div key="reviews" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
-                {reviews.length === 0 ? (
-                  <div className="glass-card p-6 text-center">
-                    <Star className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-                    <p className="text-slate-400">Sharhlar yo&apos;q</p>
-                  </div>
-                ) : (
-                  reviews.map((review) => (
-                    <div key={review.id} className="glass-card p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} className={`w-4 h-4 inline ${i < review.rating ? 'text-amber-400' : 'text-slate-600'}`} />
-                          ))}
-                        </div>
-                        <div>
-                          <p className="text-slate-300">{review.comment}</p>
-                          <p className="text-sm text-slate-500 mt-1">{new Date(review.created_at).toLocaleDateString('uz-UZ')}</p>
-                        </div>
+                {activeTab === 'skills' && (
+                  <motion.div key="skills" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
+                    {skillTests.length === 0 ? (
+                      <div className="glass-card p-6 text-center">
+                        <TrendingUp className="w-12 h-12 text-slate-500 mx-auto mb-4" />
+                        <p className="text-slate-400">Skill testlar yo&apos;q</p>
                       </div>
-                    </div>
-                  ))
+                    ) : (
+                      skillTests.map((test) => (
+                        <div key={test.id} className="glass-card p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-semibold text-white">{test.skill_name}</h4>
+                              <p className="text-sm text-slate-400">{test.status}</p>
+                            </div>
+                            <div className={`px-3 py-1 rounded-full text-sm ${
+                              test.status === 'PASSED' ? 'bg-emerald-500/20 text-emerald-400' :
+                              test.status === 'FAILED' ? 'bg-red-500/20 text-red-400' :
+                              'bg-amber-500/20 text-amber-400'
+                            }`}>
+                              {test.score || test.status}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </motion.div>
                 )}
-              </motion.div>
-            )}
+              </AnimatePresence>
+            </motion.div>
 
-            {activeTab === 'skills' && (
-              <motion.div key="skills" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
-                {skillTests.length === 0 ? (
-                  <div className="glass-card p-6 text-center">
-                    <TrendingUp className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-                    <p className="text-slate-400">Skill testlar yo&apos;q</p>
-                  </div>
-                ) : (
-                  skillTests.map((test) => (
-                    <div key={test.id} className="glass-card p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-semibold text-white">{test.skill_name}</h4>
-                          <p className="text-sm text-slate-400">{test.status}</p>
-                        </div>
-                        <div className={`px-3 py-1 rounded-full text-sm ${
-                          test.status === 'PASSED' ? 'bg-emerald-500/20 text-emerald-400' :
-                          test.status === 'FAILED' ? 'bg-red-500/20 text-red-400' :
-                          'bg-amber-500/20 text-amber-400'
-                        }`}>
-                          {test.score || test.status}
-                        </div>
+            {/* Menu */}
+            <motion.div variants={fadeInUp}>
+              <div className="glass-card overflow-hidden">
+                {menuItems.map((item, index) => (
+                  <button key={item.label} onClick={item.onClick}
+                    className={`w-full flex items-center justify-between p-4 transition-all hover:bg-white/5 ${
+                      index !== menuItems.length - 1 ? 'border-b border-white/5' : ''
+                    }`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${item.gradient} shadow-lg`}>
+                        <item.icon className="w-5 h-5 text-white" />
                       </div>
+                      <span className="font-medium text-slate-200">{item.label}</span>
                     </div>
-                  ))
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-
-        {/* Menu */}
-        <motion.div variants={fadeInUp}>
-          <div className="glass-card overflow-hidden">
-            {menuItems.map((item, index) => (
-              <button key={item.label} onClick={item.onClick}
-                className={`w-full flex items-center justify-between p-4 transition-all hover:bg-white/5 ${
-                  index !== menuItems.length - 1 ? 'border-b border-white/5' : ''
-                }`}>
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${item.gradient} shadow-lg`}>
-                    <item.icon className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="font-medium text-slate-200">{item.label}</span>
-                </div>
-                <ChevronRight className="w-5 h-5 text-slate-600" />
-              </button>
-            ))}
-          </div>
-        </motion.div>
+                    <ChevronRight className="w-5 h-5 text-slate-600" />
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        ) : (
+          <motion.div variants={fadeInUp} className="glass-card p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                <Award className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-white">Ma&apos;lumotlar</h3>
+            </div>
+            <div className="space-y-4">
+              <InfoRow icon={Mail} label="Email" value={user?.email} />
+              <InfoRow icon={Phone} label="Telefon" value={user?.phone || "Qo'shilmagan"} />
+              <InfoRow icon={MapPin} label="Joylashuv" value={user?.location || "Ko'rsatilmagan"} />
+              <InfoRow icon={Calendar} label="Qo'shilgan" value={user?.date_joined ? new Date(user.date_joined).toLocaleDateString('uz-UZ') : '-'} />
+            </div>
+          </motion.div>
+        )}
       </motion.div>
 
       {/* Edit Profile Modal */}
+      {isOwnProfile && (
       <AnimatePresence>
         {showEditModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -571,8 +658,10 @@ export const ProfilePage = () => {
           </div>
         )}
       </AnimatePresence>
+      )}
 
       {/* 2FA Modal */}
+      {isOwnProfile && (
       <AnimatePresence>
         {show2FAModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -615,8 +704,10 @@ export const ProfilePage = () => {
           </div>
         )}
       </AnimatePresence>
+      )}
 
       {/* Add Portfolio Modal */}
+      {isOwnProfile && (
       <AnimatePresence>
         {showPortfolioModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -654,17 +745,18 @@ export const ProfilePage = () => {
           </div>
         )}
       </AnimatePresence>
+      )}
     </div>
   );
 };
 
 const StatBox = ({ icon: Icon, value, label, color }) => (
-  <div className="text-center">
+  <div className="text-center rounded-2xl bg-white/5 px-3 py-3">
     <div className={`flex items-center justify-center gap-1 mb-1 ${color}`}>
       <Icon className="w-4 h-4" />
-      <span className="text-xl font-bold">{value}</span>
+      <span className="text-lg sm:text-xl font-bold">{value}</span>
     </div>
-    <p className="text-slate-400 text-sm">{label}</p>
+    <p className="text-slate-400 text-xs sm:text-sm">{label}</p>
   </div>
 );
 

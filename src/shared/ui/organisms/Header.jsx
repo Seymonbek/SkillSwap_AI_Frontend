@@ -26,30 +26,34 @@ export const Header = ({
     <header className={`sticky top-0 z-40 w-full glass-card rounded-none border-x-0 border-t-0 ${className}`}>
       <div className="flex items-center gap-3 h-16 px-4 max-w-7xl mx-auto">
         {/* Left section */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           {showBack ? (
             <button
+              type="button"
               onClick={onBack || (() => navigate(-1))}
+              aria-label="Orqaga qaytish"
               className="p-2 rounded-xl hover:bg-white/5 transition-colors"
             >
               <ChevronLeft className="w-5 h-5 text-slate-300" />
             </button>
           ) : (
             <button
+              type="button"
               onClick={onMenuClick}
+              aria-label="Navigatsiyani ochish"
               className="p-2 rounded-xl hover:bg-white/5 transition-colors md:hidden"
             >
               <Menu className="w-5 h-5 text-slate-300" />
             </button>
           )}
           {title ? (
-            <h1 className="text-lg font-semibold text-white">{title}</h1>
+            <h1 className="text-lg font-semibold text-white truncate">{title}</h1>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
-              <span className="text-lg font-bold neon-text hidden sm:block">SkillSwap AI</span>
+              <span className="text-lg font-bold neon-text hidden sm:block truncate">SkillSwap AI</span>
             </div>
           )}
         </div>
@@ -73,7 +77,9 @@ export const Header = ({
         <div className="flex items-center gap-2 ml-auto">
           {/* Search (mobile) */}
           <button
+            type="button"
             onClick={() => navigate('/search')}
+            aria-label="Qidiruv sahifasini ochish"
             className="md:hidden p-2.5 rounded-xl hover:bg-white/5 transition-colors"
           >
             <Search className="w-5 h-5 text-slate-300" />
@@ -81,7 +87,9 @@ export const Header = ({
 
           {/* Messages */}
           <button
+            type="button"
             onClick={() => navigate('/chat')}
+            aria-label="Chat sahifasini ochish"
             className="relative p-2.5 rounded-xl hover:bg-white/5 transition-colors"
           >
             <MessageSquare className="w-5 h-5 text-slate-300" />
@@ -94,7 +102,9 @@ export const Header = ({
 
           {/* Notifications */}
           <button
+            type="button"
             onClick={() => navigate('/notifications')}
+            aria-label="Bildirishnomalarni ochish"
             className="relative p-2.5 rounded-xl hover:bg-white/5 transition-colors"
           >
             <Bell className="w-5 h-5 text-slate-300" />
@@ -107,7 +117,7 @@ export const Header = ({
 
           {/* Tokens Balance */}
           {user?.wallet && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 ml-2">
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 ml-2">
               <span className="text-amber-400 font-bold">{user.wallet.time_tokens || 0}</span>
               <span className="text-amber-400 text-xs font-medium">Token</span>
             </div>

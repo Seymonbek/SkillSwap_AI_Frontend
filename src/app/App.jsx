@@ -68,6 +68,7 @@ const AppLayout = ({ children }) => {
   const location = useLocation();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const {
     unreadCount,
     incomingCall,
@@ -135,6 +136,10 @@ const AppLayout = ({ children }) => {
     };
   }, [refreshChatUnreadCount]);
 
+  useEffect(() => {
+    setIsMobileSidebarOpen(false);
+  }, [location.pathname]);
+
   const extractRoomId = (actionUrl) => {
     if (!actionUrl) return null;
     try {
@@ -186,8 +191,14 @@ const AppLayout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
-      <Header user={user} notifications={unreadCount} messages={chatUnreadCount} />
+      <Header
+        user={user}
+        notifications={unreadCount}
+        messages={chatUnreadCount}
+        onMenuClick={() => setIsMobileSidebarOpen(true)}
+      />
       <Sidebar />
+      {isMobileSidebarOpen && <Sidebar mobile onClose={() => setIsMobileSidebarOpen(false)} />}
       <main className="page-container md:ml-64">
         <AnimatePresence mode="wait">
           <PageTransition key={location.pathname}>
@@ -210,7 +221,7 @@ const AppLayout = ({ children }) => {
                 <p className="text-sm text-slate-400 mt-1">{incomingCall.message || "Qabul qilish uchun pastdagi tugmani bosing."}</p>
               </div>
             </div>
-            <div className="mt-6 flex gap-3">
+            <div className="mt-6 flex flex-col sm:flex-row gap-3">
               <button
                 onClick={dismissIncomingCall}
                 className="flex-1 py-3 rounded-xl bg-red-500/10 text-red-300 border border-red-500/20 hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2 font-medium"

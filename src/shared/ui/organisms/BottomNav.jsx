@@ -16,7 +16,7 @@ export const BottomNav = () => {
   const location = useLocation();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden pb-[max(env(safe-area-inset-bottom),0.25rem)]">
       <div className="glass-card mx-4 mb-4 rounded-2xl px-2 py-2">
         <div className="flex items-center justify-around">
           {navItems.map((item) => {

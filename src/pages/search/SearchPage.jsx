@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { searchService } from '@/shared/api';
 import {
@@ -12,21 +12,19 @@ const staggerContainer = { hidden: { opacity: 0 }, visible: { opacity: 1, transi
 
 export const SearchPage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const [searchType, setSearchType] = useState('jobs');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  const handleSearch = async (e) => {
-    e?.preventDefault();
-    if (!query.trim()) return;
-
+  const executeSearch = useCallback(async (searchQuery, nextSearchType) => {
     setLoading(true);
     setSearched(true);
     try {
-      const params = { search: query };
-      const res = searchType === 'jobs'
+      const params = { search: searchQuery };
+      const res = nextSearchType === 'jobs'
         ? await searchService.searchJobs(params)
         : await searchService.searchUsers(params);
 
@@ -37,10 +35,34 @@ export const SearchPage = () => {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    const initialQuery = searchParams.get('q')?.trim();
+    const initialType = searchParams.get('type') === 'users' ? 'users' : 'jobs';
+
+    if (!initialQuery) {
+      return;
+    }
+
+    setQuery(initialQuery);
+    setSearchType(initialType);
+    executeSearch(initialQuery, initialType);
+  }, [executeSearch, searchParams]);
+
+  const handleSearch = (e) => {
+    e?.preventDefault();
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) return;
+
+    setSearchParams({
+      q: trimmedQuery,
+      type: searchType,
+    });
   };
 
   return (
-    <div className="min-h-screen p-4 pb-24">
+    <div className="min-h-screen p-4 sm:p-6 pb-24">
       <div className="blob-bg">
         <div className="blob blob-1" style={{ width: '300px', height: '300px', opacity: 0.1 }} />
       </div>
@@ -61,7 +83,7 @@ export const SearchPage = () => {
         {/* Search Form */}
         <motion.div variants={fadeInUp}>
           <form onSubmit={handleSearch} className="glass-card p-4">
-            <div className="flex gap-2 mb-3">
+            <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
               {[
                 { id: 'jobs', label: 'Ishlar', icon: Briefcase },
                 { id: 'users', label: 'Foydalanuvchilar', icon: User },
@@ -75,7 +97,7 @@ export const SearchPage = () => {
                 </button>
               ))}
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <div className="flex-1 relative">
                 <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                 <input
@@ -86,7 +108,7 @@ export const SearchPage = () => {
                   className="glass-input w-full pl-12"
                 />
               </div>
-              <button type="submit" disabled={loading || !query.trim()} className="btn-primary px-6 flex items-center gap-2">
+              <button type="submit" disabled={loading || !query.trim()} className="btn-primary w-full sm:w-auto px-6 flex items-center justify-center gap-2">
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <SearchIcon className="w-5 h-5" />}
               </button>
             </div>
@@ -112,14 +134,14 @@ export const SearchPage = () => {
                   className="glass-card p-4 cursor-pointer hover:bg-white/5 transition-colors">
                   <h3 className="font-medium text-white">{item.title}</h3>
                   <p className="text-sm text-slate-400 mt-1 line-clamp-2">{item.description}</p>
-                  <div className="flex items-center gap-4 mt-2">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2">
                     <span className="text-emerald-400 font-semibold text-sm flex items-center gap-1">
                       <DollarSign className="w-3.5 h-3.5" />
                       {item.budget_min || 0} - {item.budget_max || 0}
                     </span>
                     <span className="px-2 py-0.5 rounded-full text-xs bg-slate-800 text-slate-400">{item.status}</span>
                     {item.skills_required?.length > 0 && (
-                      <div className="flex gap-1">
+                      <div className="flex flex-wrap gap-1">
                         {item.skills_required.slice(0, 2).map((s, i) => (
                           <span key={i} className="px-2 py-0.5 bg-slate-800 rounded text-xs text-slate-300">{s.name || s}</span>
                         ))}
@@ -130,7 +152,7 @@ export const SearchPage = () => {
               ) : (
                 <div key={item.id} onClick={() => navigate(`/profile/${item.id}`)}
                   className="glass-card p-4 cursor-pointer hover:bg-white/5 transition-colors">
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-start sm:items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-semibold">
                       {item.first_name?.charAt(0).toUpperCase() || item.email?.charAt(0).toUpperCase()}
                     </div>

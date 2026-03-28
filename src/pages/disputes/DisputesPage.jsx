@@ -11,7 +11,7 @@ const staggerContainer = { hidden: { opacity: 0 }, visible: { opacity: 1, transi
 
 export const DisputesPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createData, setCreateData] = useState({ contract: '', reason: '', description: '', evidence: null });
+  const [createData, setCreateData] = useState({ contract_id: '', category: '', description: '' });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
   const [createSuccess, setCreateSuccess] = useState(false);
@@ -21,28 +21,27 @@ export const DisputesPage = () => {
     setCreating(true);
     setCreateError('');
     try {
-      const formData = new FormData();
-      formData.append('contract', createData.contract);
-      formData.append('reason', createData.reason);
-      formData.append('description', createData.description);
-      if (createData.evidence) formData.append('evidence', createData.evidence);
+      const payload = {
+        contract_id: createData.contract_id,
+        reason: `[${createData.category}] ${createData.description}`.trim(),
+      };
 
-      await disputeService.createDispute(formData);
+      await disputeService.createDispute(payload);
       setCreateSuccess(true);
       setTimeout(() => {
         setShowCreateModal(false);
         setCreateSuccess(false);
-        setCreateData({ contract: '', reason: '', description: '', evidence: null });
+        setCreateData({ contract_id: '', category: '', description: '' });
       }, 2000);
     } catch (err) {
-      setCreateError(err.response?.data?.detail || "Xatolik yuz berdi");
+      setCreateError(err.response?.data?.detail || err.response?.data?.reason?.[0] || "Xatolik yuz berdi");
     } finally {
       setCreating(false);
     }
   };
 
   return (
-    <div className="min-h-screen p-4 pb-24">
+    <div className="min-h-screen p-4 sm:p-6 pb-24">
       <div className="blob-bg">
         <div className="blob blob-1" style={{ width: '250px', height: '250px', opacity: 0.1 }} />
       </div>
@@ -50,7 +49,7 @@ export const DisputesPage = () => {
       <motion.div initial="hidden" animate="visible" variants={staggerContainer}
         className="max-w-4xl mx-auto space-y-6 relative z-10">
         {/* Header */}
-        <motion.div variants={fadeInUp} className="flex items-center justify-between">
+        <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20">
               <AlertTriangle className="w-6 h-6 text-red-400" />
@@ -60,7 +59,7 @@ export const DisputesPage = () => {
               <p className="text-slate-400 text-sm">Nizolarni hal qilish</p>
             </div>
           </div>
-          <button onClick={() => setShowCreateModal(true)} className="btn-primary flex items-center gap-2">
+          <button onClick={() => setShowCreateModal(true)} className="btn-primary w-full sm:w-auto flex items-center justify-center gap-2">
             <AlertTriangle className="w-4 h-4" />
             Nizo ochish
           </button>
@@ -120,14 +119,14 @@ export const DisputesPage = () => {
                     )}
                     <div>
                       <label className="block text-sm font-medium text-slate-300 mb-2">Shartnoma ID</label>
-                      <input type="text" value={createData.contract}
-                        onChange={e => setCreateData({ ...createData, contract: e.target.value })}
+                      <input type="text" value={createData.contract_id}
+                        onChange={e => setCreateData({ ...createData, contract_id: e.target.value })}
                         className="glass-input w-full" placeholder="Shartnoma raqamini kiriting" required />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-300 mb-2">Sabab</label>
-                      <select value={createData.reason}
-                        onChange={e => setCreateData({ ...createData, reason: e.target.value })}
+                      <select value={createData.category}
+                        onChange={e => setCreateData({ ...createData, category: e.target.value })}
                         className="glass-input w-full" required>
                         <option value="">Tanlang</option>
                         <option value="QUALITY">Sifat muammosi</option>
@@ -141,14 +140,9 @@ export const DisputesPage = () => {
                       <label className="block text-sm font-medium text-slate-300 mb-2">Tavsif</label>
                       <textarea value={createData.description}
                         onChange={e => setCreateData({ ...createData, description: e.target.value })}
-                        className="glass-input w-full h-24 resize-none" placeholder="Muammoni batafsil tushuntiring..." required />
+                        className="glass-input w-full h-24 resize-none" placeholder="Muammoni batafsil tushuntiring... Kamida 20 belgi." required />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Dalil (ixtiyoriy)</label>
-                      <input type="file" onChange={e => setCreateData({ ...createData, evidence: e.target.files[0] })}
-                        className="glass-input w-full" />
-                    </div>
-                    <div className="flex gap-3 pt-2">
+                    <div className="flex flex-col sm:flex-row gap-3 pt-2">
                       <button type="button" onClick={() => setShowCreateModal(false)} className="btn-secondary flex-1 py-3">Bekor qilish</button>
                       <button type="submit" disabled={creating} className="btn-primary flex-1 py-3 flex items-center justify-center gap-2">
                         {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Send className="w-4 h-4" /> Yuborish</>}

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { notificationsService } from '@/shared/api';
 import {
-  Bell, CheckCheck, Trash2, MessageSquare,
+  Bell, CheckCheck, MessageSquare,
   Briefcase, DollarSign, AlertCircle, Info,
   Star, Clock, Loader2
 } from 'lucide-react';
@@ -18,7 +18,6 @@ const notificationIcons = {
 };
 
 export const NotificationsPage = () => {
-  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -58,15 +57,6 @@ export const NotificationsPage = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    try {
-      await notificationsService.getNotification(id); // Check if endpoint supports delete
-      setNotifications(notifications.filter(n => n.id !== id));
-    } catch (err) {
-      console.error('Delete notification error:', err);
-    }
-  };
-
   const filteredNotifications = notifications.filter(n =>
     filter === 'all' ? true : n.notification_type === filter
   );
@@ -83,7 +73,7 @@ export const NotificationsPage = () => {
   ];
 
   return (
-    <div className="min-h-screen p-4 pb-24">
+    <div className="min-h-screen p-4 sm:p-6 pb-24">
       {/* Background */}
       <div className="blob-bg">
         <div className="blob blob-2" style={{ width: '300px', height: '300px', opacity: 0.1 }} />
@@ -151,7 +141,6 @@ export const NotificationsPage = () => {
                   key={notification.id}
                   notification={notification}
                   onMarkAsRead={() => handleMarkAsRead(notification.id)}
-                  onDelete={() => handleDelete(notification.id)}
                   delay={index * 0.05}
                 />
               ))}
@@ -173,17 +162,23 @@ export const NotificationsPage = () => {
   );
 };
 
-const NotificationCard = ({ notification, onMarkAsRead, onDelete, delay }) => {
+const NotificationCard = ({ notification, onMarkAsRead, delay }) => {
   const navigate = useNavigate();
   const config = notificationIcons[notification.notification_type] || notificationIcons.SYSTEM;
   const Icon = config.icon;
 
   const handleClick = () => {
+    const targetUrl = notification.action_url || notification.link;
+
     if (!notification.is_read) {
       onMarkAsRead();
     }
-    if (notification.link) {
-      navigate(notification.link);
+    if (targetUrl) {
+      if (/^https?:\/\//i.test(targetUrl)) {
+        window.location.assign(targetUrl);
+      } else {
+        navigate(targetUrl);
+      }
     }
   };
 
@@ -211,20 +206,9 @@ const NotificationCard = ({ notification, onMarkAsRead, onDelete, delay }) => {
                 {notification.message}
               </p>
             </div>
-            <div className="flex items-center gap-1">
-              {!notification.is_read && (
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete();
-                }}
-                className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
+            {!notification.is_read && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1" />
+            )}
           </div>
           <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
             <span className="flex items-center gap-1">
