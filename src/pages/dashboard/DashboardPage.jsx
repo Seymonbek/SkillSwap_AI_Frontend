@@ -4,16 +4,21 @@ import { motion } from 'framer-motion';
 import {
   barterService,
   chatService,
+  commonService,
   freelanceService,
   notificationsService,
+  searchService,
 } from '@/shared/api';
 import { useAuthStore } from '@/entities/user/model/store';
+import { hasActiveSession } from '@/shared/lib/auth';
 import { formatJobBudget, getJobStatusMeta, normalizeJobs } from '@/shared/lib/job';
 import { formatRelativeTime } from '@/shared/lib/utils';
 import {
   getUserAvatarInitial,
   getUserAvatarSrc,
   getUserDisplayName,
+  getUserPrimaryRating,
+  getUserTokenBalance,
 } from '@/shared/lib/user';
 import {
   AlertCircle,
@@ -48,6 +53,29 @@ const ACTIVE_MENTORSHIP_STATUSES = new Set(['PENDING', 'NEGOTIATING', 'ACCEPTED'
 const ACTIVE_SESSION_STATUSES = new Set(['PENDING', 'SCHEDULED', 'CONFIRMED', 'IN_PROGRESS']);
 
 const toArray = (value) => (Array.isArray(value) ? value : []);
+const readStoredUser = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    return JSON.parse(window.localStorage.getItem('user') || 'null');
+  } catch {
+    return null;
+  }
+};
+
+const hasListedSkills = (user) =>
+  toArray(user?.skills_offered).length > 0 || toArray(user?.skills_wanted).length > 0;
+
+const buildProfileChecklist = (user) => [
+  { label: 'Ism', done: Boolean(user?.first_name || user?.last_name) },
+  { label: 'Avatar', done: Boolean(getUserAvatarSrc(user)) },
+  { label: 'Bio', done: Boolean(String(user?.bio || '').trim()) },
+  { label: 'Joylashuv', done: Boolean(String(user?.location || '').trim()) },
+  { label: "Taklif ko'nikmalari", done: toArray(user?.skills_offered).length > 0 },
+  { label: "O'rganmoqchi ko'nikmalar", done: toArray(user?.skills_wanted).length > 0 },
+];
 
 const getRoomPeer = (room, currentUserId) => {
   const participants = toArray(room?.participants);
@@ -175,6 +203,7 @@ export const DashboardPage = () => {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const fetchCurrentUser = useAuthStore((state) => state.fetchCurrentUser);
+  const [storedUser, setStoredUser] = useState(() => readStoredUser());
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -188,10 +217,17 @@ export const DashboardPage = () => {
     activeBarter: 0,
     unreadNotifications: 0,
   });
+  const [platformStats, setPlatformStats] = useState({
+    users: 0,
+    openJobs: 0,
+    recommendedMentors: 0,
+    premiumJobCost: 0,
+  });
   const [recentJobs, setRecentJobs] = useState([]);
   const [recentRooms, setRecentRooms] = useState([]);
   const [recentMentorships, setRecentMentorships] = useState([]);
   const [recentSessions, setRecentSessions] = useState([]);
+  const [recommendedUsers, setRecommendedUsers] = useState([]);
 
   const loadDashboard = useCallback(async ({ silent = false } = {}) => {
     if (silent) {
@@ -202,22 +238,31 @@ export const DashboardPage = () => {
 
     setError('');
 
-    if (!user) {
-      await fetchCurrentUser();
+    const sessionActive = hasActiveSession();
+    let currentUser = user || storedUser || readStoredUser();
+
+    if (!currentUser && sessionActive) {
+      const fetchedUser = await fetchCurrentUser();
+      if (fetchedUser) {
+        currentUser = fetchedUser;
+        setStoredUser(fetchedUser);
+      }
     }
 
     const results = await Promise.allSettled([
       freelanceService.getJobs({ ordering: '-created_at', page: 1 }),
-      freelanceService.getJobs({ status: 'OPEN', page: 1 }),
-      chatService.getRooms(),
-      barterService.getMentorships(),
-      barterService.getSessions(),
-      notificationsService.getUnreadCount(),
+      searchService.searchUsers({ page: 1 }),
+      commonService.getSettings(),
+      sessionActive ? chatService.getRooms() : Promise.resolve({ data: [] }),
+      sessionActive ? barterService.getMentorships() : Promise.resolve({ data: [] }),
+      sessionActive ? barterService.getSessions() : Promise.resolve({ data: [] }),
+      sessionActive ? notificationsService.getUnreadCount() : Promise.resolve({ data: { unread_count: 0 } }),
     ]);
 
     const [
       jobsResult,
-      openJobsResult,
+      usersResult,
+      settingsResult,
       roomsResult,
       mentorshipsResult,
       sessionsResult,
@@ -227,6 +272,9 @@ export const DashboardPage = () => {
     let hasAnyData = false;
     let nextTotalJobs = 0;
     let nextOpenJobs = 0;
+    let nextUsersCount = 0;
+    let nextRecommendedMentors = 0;
+    let nextPremiumJobCost = 0;
     let nextTotalRooms = 0;
     let nextUnreadMessages = 0;
     let nextTotalBarter = 0;
@@ -243,10 +291,26 @@ export const DashboardPage = () => {
       setRecentJobs([]);
     }
 
-    if (openJobsResult.status === 'fulfilled') {
-      const openJobsPayload = openJobsResult.value.data;
-      const openJobs = normalizeJobs(openJobsPayload?.results || openJobsPayload || []);
-      nextOpenJobs = openJobsPayload?.count ?? openJobs.length;
+    if (usersResult.status === 'fulfilled') {
+      const usersPayload = usersResult.value.data;
+      const users = usersPayload?.results || usersPayload || [];
+      const suggestedUsers = users.filter(
+        (candidate) =>
+          String(candidate.id) !== String(currentUser?.id || '') &&
+          hasListedSkills(candidate)
+      );
+
+      nextUsersCount = usersPayload?.count ?? users.length;
+      nextRecommendedMentors = suggestedUsers.length;
+      setRecommendedUsers(suggestedUsers.slice(0, 3));
+      hasAnyData = true;
+    } else {
+      setRecommendedUsers([]);
+    }
+
+    if (settingsResult.status === 'fulfilled') {
+      const settingsPayload = settingsResult.value.data || {};
+      nextPremiumJobCost = Number(settingsPayload.premium_job_cost || 0);
       hasAnyData = true;
     }
 
@@ -311,6 +375,12 @@ export const DashboardPage = () => {
       activeBarter: nextActiveBarter,
       unreadNotifications: nextUnreadNotifications,
     });
+    setPlatformStats({
+      users: nextUsersCount,
+      openJobs: nextOpenJobs,
+      recommendedMentors: nextRecommendedMentors,
+      premiumJobCost: nextPremiumJobCost,
+    });
 
     if (!hasAnyData) {
       setError("Asosiy sahifa ma'lumotlarini yuklab bo'lmadi. Qayta urinib ko'ring.");
@@ -322,7 +392,7 @@ export const DashboardPage = () => {
       setLoading(false);
     }
 
-  }, [fetchCurrentUser, user]);
+  }, [fetchCurrentUser, storedUser, user]);
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -332,17 +402,48 @@ export const DashboardPage = () => {
     return () => window.cancelAnimationFrame(frameId);
   }, [loadDashboard]);
 
-  const currentUserId = user?.id || null;
-  const greetingName = user?.first_name || getUserDisplayName(user, 'Foydalanuvchi');
+  const currentUser = user || storedUser || null;
+  const currentUserId = currentUser?.id || null;
+  const greetingName = currentUser?.first_name || getUserDisplayName(currentUser, 'Foydalanuvchi');
+  const tokenBalance = getUserTokenBalance(currentUser);
+  const profileChecklist = buildProfileChecklist(currentUser);
+  const completedProfileItems = profileChecklist.filter((item) => item.done).length;
+  const profileCompletion = profileChecklist.length > 0
+    ? Math.round((completedProfileItems / profileChecklist.length) * 100)
+    : 0;
 
   const statCards = [
     {
+      icon: Users,
+      label: 'Mutaxassislar',
+      value: platformStats.users,
+      hint: 'Platformadagi foydalanuvchilar',
+      color: 'from-cyan-500 to-blue-500',
+    },
+    {
       icon: Briefcase,
-      label: 'Jami ishlar',
-      value: stats.totalJobs,
-      hint: `${stats.openJobs} ta ochiq`,
+      label: 'Ochiq ishlar',
+      value: platformStats.openJobs,
+      hint: "Live backenddagi e'lonlar",
       color: 'from-blue-500 to-cyan-500',
     },
+    {
+      icon: BookOpen,
+      label: 'Mentor tavsiyasi',
+      value: platformStats.recommendedMentors,
+      hint: 'Skilli bor mos userlar',
+      color: 'from-violet-500 to-purple-500',
+    },
+    {
+      icon: Wallet,
+      label: 'Time tokenlar',
+      value: tokenBalance,
+      hint: `${platformStats.premiumJobCost || 0} TK premium e'lon`,
+      color: 'from-amber-500 to-orange-500',
+    },
+  ];
+
+  const activityCards = [
     {
       icon: MessageSquare,
       label: 'Xabarlar',
@@ -363,6 +464,13 @@ export const DashboardPage = () => {
       value: stats.unreadNotifications,
       hint: "O'qilmagan",
       color: 'from-red-500 to-pink-500',
+    },
+    {
+      icon: Sparkles,
+      label: 'Profil holati',
+      value: `${profileCompletion}%`,
+      hint: `${completedProfileItems}/${profileChecklist.length} qism to'ldirilgan`,
+      color: 'from-emerald-500 to-teal-500',
     },
   ];
 
@@ -460,6 +568,23 @@ export const DashboardPage = () => {
           ))}
         </motion.div>
 
+        <motion.div variants={fadeInUp} className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+          {activityCards.map((stat) => (
+            <div key={stat.label} className="glass-card p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-lg font-semibold text-white">{stat.value}</p>
+                  <p className="text-sm text-slate-400">{stat.label}</p>
+                  <p className="text-xs text-slate-500 mt-1">{stat.hint}</p>
+                </div>
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}>
+                  <stat.icon className="w-5 h-5 text-white" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </motion.div>
+
         <motion.div variants={fadeInUp}>
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Zap className="w-5 h-5 text-emerald-400" />
@@ -478,6 +603,152 @@ export const DashboardPage = () => {
                 <span className="text-xs text-slate-300 font-medium text-center">{action.label}</span>
               </button>
             ))}
+          </div>
+        </motion.div>
+
+        <motion.div variants={fadeInUp} className="grid lg:grid-cols-[1.2fr,0.8fr] gap-4">
+          <div className="glass-card p-5">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-white">Profil holati</h2>
+                <p className="text-sm text-slate-400">Asosiy maydonlar to'ldirilganini tekshiring.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/profile')}
+                className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
+              >
+                Profilni ochish
+              </button>
+            </div>
+            <div className="w-full h-2 rounded-full bg-white/5 overflow-hidden mb-4">
+              <div
+                className="h-full bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500"
+                style={{ width: `${profileCompletion}%` }}
+              />
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {profileChecklist.map((item) => (
+                <div
+                  key={item.label}
+                  className={`rounded-2xl border px-4 py-3 text-sm ${
+                    item.done
+                      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
+                      : 'border-white/10 bg-white/5 text-slate-300'
+                  }`}
+                >
+                  {item.label}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="glass-card p-5">
+            <h2 className="text-lg font-semibold text-white mb-1">Kabinet ma'lumoti</h2>
+            <p className="text-sm text-slate-400 mb-4">Sizning hisobingiz bo'yicha qisqa ko'rinish.</p>
+            <div className="space-y-3">
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <p className="text-xs text-slate-500 mb-1">Display name</p>
+                <p className="text-white font-medium">{getUserDisplayName(currentUser, 'Foydalanuvchi')}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <p className="text-xs text-slate-500 mb-1">Reyting</p>
+                <p className="text-white font-medium">{getUserPrimaryRating(currentUser).toFixed(1)}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <p className="text-xs text-slate-500 mb-1">Taklif qilayotgan skill</p>
+                <p className="text-white font-medium">
+                  {toArray(currentUser?.skills_offered).length > 0
+                    ? toArray(currentUser?.skills_offered).join(', ')
+                    : "Hozircha yo'q"}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <p className="text-xs text-slate-500 mb-1">O'rganmoqchi skill</p>
+                <p className="text-white font-medium">
+                  {toArray(currentUser?.skills_wanted).length > 0
+                    ? toArray(currentUser?.skills_wanted).join(', ')
+                    : "Hozircha yo'q"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div variants={fadeInUp}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Users className="w-5 h-5 text-cyan-400" />
+              Tavsiya etilgan mentorlar
+            </h2>
+            <button
+              onClick={() => navigate('/barter')}
+              className="text-sm text-emerald-400 flex items-center gap-1 hover:text-emerald-300 transition-colors"
+            >
+              Barter bo'limi <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="space-y-3">
+            {recommendedUsers.length > 0 ? recommendedUsers.map((candidate) => {
+              const avatarSrc = getUserAvatarSrc(candidate);
+              const displayName = getUserDisplayName(candidate, 'Mutaxassis');
+              const skills = [...toArray(candidate.skills_offered), ...toArray(candidate.skills_wanted)]
+                .filter(Boolean)
+                .slice(0, 3);
+
+              return (
+                <div key={candidate.id} className="glass-card p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white font-semibold overflow-hidden flex-shrink-0">
+                      {avatarSrc ? (
+                        <img src={avatarSrc} alt={displayName} className="w-full h-full object-cover" />
+                      ) : (
+                        getUserAvatarInitial(candidate, 'M')
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-medium text-white">{displayName}</h3>
+                        {candidate.is_kyc_verified && (
+                          <span className="px-2 py-0.5 rounded-full text-xs border border-emerald-500/20 bg-emerald-500/10 text-emerald-300">
+                            Tasdiqlangan
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-400 mt-1 line-clamp-2">
+                        {candidate.bio || "Bu mutaxassis bilan barter yoki mentorlik boshlash mumkin."}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2 mt-3">
+                        {skills.length > 0 ? skills.map((skill) => (
+                          <span
+                            key={`${candidate.id}-${skill}`}
+                            className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300"
+                          >
+                            {skill}
+                          </span>
+                        )) : (
+                          <span className="text-xs text-slate-500">Skill ma'lumoti yo'q</span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/barter')}
+                      className="btn-secondary text-sm shrink-0"
+                    >
+                      Ochish
+                    </button>
+                  </div>
+                </div>
+              );
+            }) : (
+              <div className="glass-card p-6 text-center">
+                <p className="text-slate-400">Skilli ko'rinadigan mentorlar hozircha topilmadi.</p>
+                <button onClick={() => navigate('/profile')} className="btn-secondary mt-3 text-sm">
+                  Profilni to'ldirish
+                </button>
+              </div>
+            )}
           </div>
         </motion.div>
 
