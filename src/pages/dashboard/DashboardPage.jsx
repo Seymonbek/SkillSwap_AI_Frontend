@@ -2,12 +2,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
+  authService,
   barterService,
   chatService,
   commonService,
   freelanceService,
   notificationsService,
-  searchService,
 } from '@/shared/api';
 import { useAuthStore } from '@/entities/user/model/store';
 import { hasActiveSession } from '@/shared/lib/auth';
@@ -217,6 +217,7 @@ export const DashboardPage = () => {
     activeRequests: 0,
     totalSessions: 0,
     activeSessions: 0,
+    upcomingSessions: 0,
     totalBarter: 0,
     activeBarter: 0,
     unreadNotifications: 0,
@@ -255,7 +256,8 @@ export const DashboardPage = () => {
 
     const results = await Promise.allSettled([
       freelanceService.getJobs({ ordering: '-created_at', page: 1 }),
-      searchService.searchUsers({ page: 1 }),
+      freelanceService.getJobs({ status: 'OPEN', page: 1 }),
+      authService.searchUsers({ page: 1 }),
       commonService.getSettings(),
       sessionActive ? chatService.getRooms() : Promise.resolve({ data: [] }),
       sessionActive ? barterService.getMentorships() : Promise.resolve({ data: [] }),
@@ -265,6 +267,7 @@ export const DashboardPage = () => {
 
     const [
       jobsResult,
+      openJobsResult,
       usersResult,
       settingsResult,
       roomsResult,
@@ -285,6 +288,7 @@ export const DashboardPage = () => {
     let nextActiveRequests = 0;
     let nextTotalSessions = 0;
     let nextActiveSessions = 0;
+    let nextUpcomingSessions = 0;
     let nextTotalBarter = 0;
     let nextActiveBarter = 0;
     let nextUnreadNotifications = 0;
@@ -297,6 +301,13 @@ export const DashboardPage = () => {
       hasAnyData = true;
     } else {
       setRecentJobs([]);
+    }
+
+    if (openJobsResult.status === 'fulfilled') {
+      const openJobsPayload = openJobsResult.value.data;
+      const openJobs = normalizeJobs(openJobsPayload?.results || openJobsPayload || []);
+      nextOpenJobs = openJobsPayload?.count ?? openJobs.length;
+      hasAnyData = true;
     }
 
     if (usersResult.status === 'fulfilled') {
@@ -361,9 +372,17 @@ export const DashboardPage = () => {
       const activeSessionsCount = sessions.filter((item) =>
         ACTIVE_SESSION_STATUSES.has(item.status)
       ).length;
+      const upcomingSessionsCount = sessions.filter((item) => {
+        if (!ACTIVE_SESSION_STATUSES.has(item.status) || !item.scheduled_time) {
+          return false;
+        }
+
+        return new Date(item.scheduled_time).getTime() > Date.now();
+      }).length;
 
       nextTotalSessions = sessions.length;
       nextActiveSessions = activeSessionsCount;
+      nextUpcomingSessions = upcomingSessionsCount;
       nextTotalBarter += sessions.length;
       nextActiveBarter += activeSessionsCount;
       setRecentSessions(sortedSessions.slice(0, 3));
@@ -387,6 +406,7 @@ export const DashboardPage = () => {
       activeRequests: nextActiveRequests,
       totalSessions: nextTotalSessions,
       activeSessions: nextActiveSessions,
+      upcomingSessions: nextUpcomingSessions,
       totalBarter: nextTotalBarter,
       activeBarter: nextActiveBarter,
       unreadNotifications: nextUnreadNotifications,
@@ -446,7 +466,7 @@ export const DashboardPage = () => {
     {
       icon: Calendar,
       label: 'Yaqin sessiya',
-      value: stats.totalSessions,
+      value: stats.upcomingSessions,
       hint: `${stats.activeSessions} ta faol`,
       color: 'from-amber-500 to-orange-500',
     },
