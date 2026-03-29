@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { commonService, freelanceService, searchService, subscriptionsService } from '@/shared/api';
 import { Button } from '@/shared/ui/atoms/Button';
 import {
   ArrowRight,
@@ -40,8 +41,30 @@ const scaleIn = {
   visible: { opacity: 1, scale: 1 },
 };
 
+const DEFAULT_STATS = [
+  { value: '500+', label: 'Mutaxassislar' },
+  { value: '200+', label: 'Ochiq ishlar' },
+  { value: '3', label: 'Faol tariflar' },
+  { value: '50 TK', label: "Premium e'lon" },
+];
+
+const formatCompactCount = (value, { prefix = '', suffix = '+' } = {}) => {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue) || numericValue < 0) {
+    return null;
+  }
+
+  const formatted = new Intl.NumberFormat('en', {
+    notation: numericValue >= 1000 ? 'compact' : 'standard',
+    maximumFractionDigits: numericValue >= 1000 ? 1 : 0,
+  }).format(numericValue);
+
+  return `${prefix}${formatted}${suffix}`;
+};
+
 export const LandingPage = () => {
   const navigate = useNavigate();
+  const [stats, setStats] = useState(DEFAULT_STATS);
 
   const features = [
     {
@@ -82,14 +105,6 @@ export const LandingPage = () => {
     },
   ];
 
-  // TODO: Fetch from commonService.getSettings() or adminService.getPlatformStats()
-  const stats = [
-    { value: '500+', label: 'Freelancerlar' },
-    { value: '200+', label: 'Mijozlar' },
-    { value: '1K+', label: 'Bajarilgan loyihalar' },
-    { value: '$50K+', label: "To'langan mablag'" },
-  ];
-
   const testimonials = [
     {
       name: 'Azizbek Rahimov',
@@ -113,6 +128,71 @@ export const LandingPage = () => {
       rating: 5,
     },
   ];
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadStats = async () => {
+      const [usersResult, jobsResult, plansResult, settingsResult] = await Promise.allSettled([
+        searchService.searchUsers({ page: 1 }),
+        freelanceService.getJobs({ page: 1 }),
+        subscriptionsService.getPlans({ page: 1 }),
+        commonService.getSettings(),
+      ]);
+
+      if (cancelled) {
+        return;
+      }
+
+      const nextStats = [...DEFAULT_STATS];
+
+      if (usersResult.status === 'fulfilled') {
+        const usersPayload = usersResult.value.data;
+        const usersCount = usersPayload?.count ?? (usersPayload?.results || usersPayload || []).length;
+        nextStats[0] = {
+          value: formatCompactCount(usersCount) || DEFAULT_STATS[0].value,
+          label: 'Mutaxassislar',
+        };
+      }
+
+      if (jobsResult.status === 'fulfilled') {
+        const jobsPayload = jobsResult.value.data;
+        const jobsCount = jobsPayload?.count ?? (jobsPayload?.results || jobsPayload || []).length;
+        nextStats[1] = {
+          value: formatCompactCount(jobsCount) || DEFAULT_STATS[1].value,
+          label: 'Ochiq ishlar',
+        };
+      }
+
+      if (plansResult.status === 'fulfilled') {
+        const plansPayload = plansResult.value.data;
+        const plansCount = plansPayload?.count ?? (plansPayload?.results || plansPayload || []).length;
+        nextStats[2] = {
+          value: String(plansCount || 0),
+          label: 'Faol tariflar',
+        };
+      }
+
+      if (settingsResult.status === 'fulfilled') {
+        const settingsPayload = settingsResult.value.data || {};
+        const premiumJobCost = Number(settingsPayload.premium_job_cost);
+        if (Number.isFinite(premiumJobCost) && premiumJobCost > 0) {
+          nextStats[3] = {
+            value: `${premiumJobCost} TK`,
+            label: "Premium e'lon",
+          };
+        }
+      }
+
+      setStats(nextStats);
+    };
+
+    void loadStats();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 overflow-x-hidden">

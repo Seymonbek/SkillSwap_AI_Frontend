@@ -1,15 +1,36 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  freelanceService, chatService, barterService,
-  notificationsService, authService
+  barterService,
+  chatService,
+  freelanceService,
+  notificationsService,
 } from '@/shared/api';
+import { useAuthStore } from '@/entities/user/model/store';
+import { formatJobBudget, getJobStatusMeta, normalizeJobs } from '@/shared/lib/job';
+import { formatRelativeTime } from '@/shared/lib/utils';
 import {
-  Briefcase, MessageSquare, Star, TrendingUp,
-  Clock, ArrowRight, Activity, Users, DollarSign,
-  Zap, ChevronRight, Sparkles, Search, BookOpen,
-  Bell, Wallet, FileText
+  getUserAvatarInitial,
+  getUserAvatarSrc,
+  getUserDisplayName,
+} from '@/shared/lib/user';
+import {
+  AlertCircle,
+  Bell,
+  BookOpen,
+  Briefcase,
+  Calendar,
+  ChevronRight,
+  FileText,
+  MessageSquare,
+  RefreshCw,
+  Search,
+  Sparkles,
+  Users,
+  Video,
+  Wallet,
+  Zap,
 } from 'lucide-react';
 
 const fadeInUp = {
@@ -22,97 +43,302 @@ const staggerContainer = {
   visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
 };
 
+const ACTIVE_MENTORSHIP_STATUSES = new Set(['PENDING', 'NEGOTIATING', 'ACCEPTED']);
+const ACTIVE_SESSION_STATUSES = new Set(['PENDING', 'SCHEDULED', 'CONFIRMED', 'IN_PROGRESS']);
+
+const toArray = (value) => (Array.isArray(value) ? value : []);
+
+const getRoomPeer = (room, currentUserId) => {
+  const participants = toArray(room?.participants);
+  if (participants.length === 0) {
+    return null;
+  }
+
+  return (
+    participants.find((participant) => String(participant.id) !== String(currentUserId)) ||
+    participants[0]
+  );
+};
+
+const getRoomDisplayName = (room, currentUserId) => {
+  const explicitName = String(room?.name || '').trim();
+  if (explicitName) {
+    return explicitName;
+  }
+
+  const peer = getRoomPeer(room, currentUserId);
+  return getUserDisplayName(peer, 'Suhbat');
+};
+
+const getRoomPreview = (room) => {
+  const lastMessage = room?.last_message;
+  if (!lastMessage) {
+    return "Xabar yo'q";
+  }
+
+  const messageType = String(lastMessage.message_type || 'TEXT').toUpperCase();
+  if (messageType === 'IMAGE') return 'Rasm yuborildi';
+  if (messageType === 'AUDIO') return 'Audio yuborildi';
+  if (messageType === 'FILE') return lastMessage.file_name || 'Fayl yuborildi';
+
+  return lastMessage.content || "Xabar yo'q";
+};
+
+const getChatRoomId = (session) =>
+  session?.chat_room_id || session?.chat_room?.id || session?.chat_room || null;
+
+const buildSessionChatRoute = (session) => {
+  const roomId = getChatRoomId(session);
+  if (!roomId || !session?.id) {
+    return '/barter';
+  }
+
+  return `/chat/${roomId}?session=${session.id}`;
+};
+
+const buildSessionVideoRoute = (session) => {
+  const roomId = getChatRoomId(session);
+  if (!roomId || !session?.id) {
+    return '/barter';
+  }
+
+  return `/video?room=${roomId}&session=${session.id}`;
+};
+
+const getMentorshipPartner = (item, currentUserId) => {
+  const mentorId = item?.mentor_detail?.id || item?.mentor;
+  const isMentor = String(mentorId) === String(currentUserId);
+  return isMentor ? item?.student_detail : item?.mentor_detail;
+};
+
+const getSessionPartner = (session, currentUserId) => {
+  const mentorId = session?.mentor_detail?.id || session?.mentor;
+  const isMentor = String(mentorId) === String(currentUserId);
+  return isMentor ? session?.student_detail : session?.mentor_detail;
+};
+
+const getMentorshipStatusMeta = (status) => {
+  switch (status) {
+    case 'ACCEPTED':
+      return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+    case 'NEGOTIATING':
+      return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+    case 'PENDING':
+      return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+    default:
+      return 'bg-slate-700/50 text-slate-300 border-white/10';
+  }
+};
+
+const getSessionStatusMeta = (status) => {
+  switch (status) {
+    case 'IN_PROGRESS':
+      return 'bg-violet-500/10 text-violet-400 border-violet-500/20';
+    case 'CONFIRMED':
+      return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+    case 'SCHEDULED':
+      return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+    case 'PENDING':
+      return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+    default:
+      return 'bg-slate-700/50 text-slate-300 border-white/10';
+  }
+};
+
+const sortMentorships = (items) =>
+  [...items].sort((left, right) => {
+    const leftPriority = ACTIVE_MENTORSHIP_STATUSES.has(left.status) ? 0 : 1;
+    const rightPriority = ACTIVE_MENTORSHIP_STATUSES.has(right.status) ? 0 : 1;
+
+    if (leftPriority !== rightPriority) {
+      return leftPriority - rightPriority;
+    }
+
+    return new Date(right.created_at || 0).getTime() - new Date(left.created_at || 0).getTime();
+  });
+
+const sortSessions = (items) =>
+  [...items].sort((left, right) => {
+    const leftPriority = ACTIVE_SESSION_STATUSES.has(left.status) ? 0 : 1;
+    const rightPriority = ACTIVE_SESSION_STATUSES.has(right.status) ? 0 : 1;
+
+    if (leftPriority !== rightPriority) {
+      return leftPriority - rightPriority;
+    }
+
+    return new Date(left.scheduled_time || left.created_at || 0).getTime() -
+      new Date(right.scheduled_time || right.created_at || 0).getTime();
+  });
+
 export const DashboardPage = () => {
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const fetchCurrentUser = useAuthStore((state) => state.fetchCurrentUser);
+
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
   const [stats, setStats] = useState({
-    activeJobs: 0,
-    totalMessages: 0,
-    barterSessions: 0,
+    openJobs: 0,
+    unreadMessages: 0,
+    activeBarter: 0,
     unreadNotifications: 0,
   });
   const [recentJobs, setRecentJobs] = useState([]);
   const [recentRooms, setRecentRooms] = useState([]);
-  const [mentorships, setMentorships] = useState([]);
+  const [recentMentorships, setRecentMentorships] = useState([]);
+  const [recentSessions, setRecentSessions] = useState([]);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  const loadDashboard = useCallback(async ({ silent = false } = {}) => {
+    if (silent) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
 
-  const fetchDashboardData = async () => {
-    try {
-      const results = await Promise.allSettled([
-        freelanceService.getJobs(),                     // 0
-        chatService.getRooms(),                          // 1
-        barterService.getMentorships(),                  // 2
-        notificationsService.getUnreadCount(),           // 3
-        authService.getMe(),                             // 4
-      ]);
+    setError('');
 
-      // Jobs
-      if (results[0].status === 'fulfilled') {
-        const jobsData = results[0].value.data;
-        const jobs = jobsData?.results || jobsData || [];
-        setRecentJobs(jobs.slice(0, 3));
-        setStats(prev => ({ ...prev, activeJobs: jobsData?.count || jobs.length }));
-      }
+    if (!user) {
+      await fetchCurrentUser();
+    }
 
-      // Chat Rooms
-      if (results[1].status === 'fulfilled') {
-        const roomsData = results[1].value.data;
-        const rooms = roomsData?.results || roomsData || [];
-        setRecentRooms(rooms.slice(0, 3));
-        setStats(prev => ({ ...prev, totalMessages: rooms.length }));
-      }
+    const results = await Promise.allSettled([
+      freelanceService.getJobs({ status: 'OPEN', ordering: '-created_at', page: 1 }),
+      chatService.getRooms(),
+      barterService.getMentorships(),
+      barterService.getSessions(),
+      notificationsService.getUnreadCount(),
+    ]);
 
-      // Mentorships
-      if (results[2].status === 'fulfilled') {
-        const barterData = results[2].value.data;
-        const items = barterData?.results || barterData || [];
-        setMentorships(items.slice(0, 3));
-        setStats(prev => ({ ...prev, barterSessions: items.length }));
-      }
+    const [jobsResult, roomsResult, mentorshipsResult, sessionsResult, notificationsResult] = results;
 
-      // Unread count
-      if (results[3].status === 'fulfilled') {
-        const countData = results[3].value.data;
-        setStats(prev => ({
-          ...prev,
-          unreadNotifications: countData?.count ?? countData?.unread_count ?? 0,
-        }));
-      }
+    let hasAnyData = false;
+    let nextOpenJobs = 0;
+    let nextUnreadMessages = 0;
+    let nextActiveBarter = 0;
+    let nextUnreadNotifications = 0;
 
-      // User profile
-      if (results[4].status === 'fulfilled') {
-        const userData = results[4].value.data;
-        setUser(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
-      } else {
-        const stored = localStorage.getItem('user');
-        if (stored) setUser(JSON.parse(stored));
-      }
-    } catch (err) {
-      console.error('Dashboard fetch error:', err);
-      const stored = localStorage.getItem('user');
-      if (stored) setUser(JSON.parse(stored));
-    } finally {
+    if (jobsResult.status === 'fulfilled') {
+      const jobsPayload = jobsResult.value.data;
+      const jobs = normalizeJobs(jobsPayload?.results || jobsPayload || []);
+      nextOpenJobs = jobsPayload?.count ?? jobs.length;
+      setRecentJobs(jobs.slice(0, 3));
+      hasAnyData = true;
+    } else {
+      setRecentJobs([]);
+    }
+
+    if (roomsResult.status === 'fulfilled') {
+      const roomsPayload = roomsResult.value.data;
+      const rooms = roomsPayload?.results || roomsPayload || [];
+      nextUnreadMessages = rooms.reduce(
+        (sum, room) => sum + Number(room.unread_count || 0),
+        0
+      );
+      setRecentRooms(rooms.slice(0, 3));
+      hasAnyData = true;
+    } else {
+      setRecentRooms([]);
+    }
+
+    if (mentorshipsResult.status === 'fulfilled') {
+      const mentorshipsPayload = mentorshipsResult.value.data;
+      const mentorships = mentorshipsPayload?.results || mentorshipsPayload || [];
+      const sortedMentorships = sortMentorships(mentorships);
+      const activeMentorshipsCount = mentorships.filter((item) =>
+        ACTIVE_MENTORSHIP_STATUSES.has(item.status)
+      ).length;
+
+      nextActiveBarter += activeMentorshipsCount;
+      setRecentMentorships(sortedMentorships.slice(0, 3));
+      hasAnyData = true;
+    } else {
+      setRecentMentorships([]);
+    }
+
+    if (sessionsResult.status === 'fulfilled') {
+      const sessionsPayload = sessionsResult.value.data;
+      const sessions = sessionsPayload?.results || sessionsPayload || [];
+      const sortedSessions = sortSessions(sessions);
+      const activeSessionsCount = sessions.filter((item) =>
+        ACTIVE_SESSION_STATUSES.has(item.status)
+      ).length;
+
+      nextActiveBarter += activeSessionsCount;
+      setRecentSessions(sortedSessions.slice(0, 3));
+      hasAnyData = true;
+    } else {
+      setRecentSessions([]);
+    }
+
+    if (notificationsResult.status === 'fulfilled') {
+      const unreadPayload = notificationsResult.value.data;
+      nextUnreadNotifications = unreadPayload?.count ?? unreadPayload?.unread_count ?? 0;
+      hasAnyData = true;
+    }
+
+    setStats({
+      openJobs: nextOpenJobs,
+      unreadMessages: nextUnreadMessages,
+      activeBarter: nextActiveBarter,
+      unreadNotifications: nextUnreadNotifications,
+    });
+
+    if (!hasAnyData) {
+      setError("Asosiy sahifa ma'lumotlarini yuklab bo'lmadi. Qayta urinib ko'ring.");
+    }
+
+    if (silent) {
+      setRefreshing(false);
+    } else {
       setLoading(false);
     }
-  };
+
+  }, [fetchCurrentUser, user]);
+
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      void loadDashboard();
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [loadDashboard]);
+
+  const currentUserId = user?.id || null;
+  const greetingName = user?.first_name || getUserDisplayName(user, 'Foydalanuvchi');
 
   const statCards = [
-    { icon: Briefcase, label: 'Faol ishlar', value: stats.activeJobs, color: 'from-blue-500 to-cyan-500', iconColor: 'text-blue-400' },
-    { icon: MessageSquare, label: 'Xabarlar', value: stats.totalMessages, color: 'from-violet-500 to-purple-500', iconColor: 'text-violet-400' },
-    { icon: BookOpen, label: 'Barter', value: stats.barterSessions, color: 'from-amber-500 to-orange-500', iconColor: 'text-amber-400' },
-    { icon: Bell, label: "O'qilmagan", value: stats.unreadNotifications, color: 'from-red-500 to-pink-500', iconColor: 'text-red-400' },
+    {
+      icon: Briefcase,
+      label: 'Ochiq ishlar',
+      value: stats.openJobs,
+      color: 'from-blue-500 to-cyan-500',
+    },
+    {
+      icon: MessageSquare,
+      label: "O'qilmagan xabarlar",
+      value: stats.unreadMessages,
+      color: 'from-violet-500 to-purple-500',
+    },
+    {
+      icon: BookOpen,
+      label: 'Faol barter',
+      value: stats.activeBarter,
+      color: 'from-amber-500 to-orange-500',
+    },
+    {
+      icon: Bell,
+      label: 'Bildirishnomalar',
+      value: stats.unreadNotifications,
+      color: 'from-red-500 to-pink-500',
+    },
   ];
 
   const quickActions = [
     { icon: Search, label: 'Ish qidirish', onClick: () => navigate('/jobs'), color: 'from-emerald-500 to-teal-500' },
     { icon: Users, label: 'Mentor topish', onClick: () => navigate('/barter'), color: 'from-violet-500 to-purple-500' },
     { icon: MessageSquare, label: 'Xabarlar', onClick: () => navigate('/chat'), color: 'from-blue-500 to-cyan-500' },
-    { icon: Wallet, label: "Hamyon", onClick: () => navigate('/wallet'), color: 'from-amber-500 to-orange-500' },
+    { icon: Wallet, label: 'Hamyon', onClick: () => navigate('/wallet'), color: 'from-amber-500 to-orange-500' },
     { icon: FileText, label: 'Shartnomalar', onClick: () => navigate('/contracts'), color: 'from-pink-500 to-rose-500' },
     { icon: Sparkles, label: 'AI Qidiruv', onClick: () => navigate('/search'), color: 'from-cyan-500 to-blue-500' },
   ];
@@ -122,8 +348,8 @@ export const DashboardPage = () => {
       <div className="p-4 sm:p-6 space-y-4">
         <div className="glass-card h-32 animate-pulse" />
         <div className="grid grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="glass-card h-24 animate-pulse" />
+          {[1, 2, 3, 4].map((item) => (
+            <div key={item} className="glass-card h-24 animate-pulse" />
           ))}
         </div>
         <div className="glass-card h-48 animate-pulse" />
@@ -133,10 +359,9 @@ export const DashboardPage = () => {
 
   return (
     <div className="min-h-screen p-4 sm:p-6 pb-24">
-      {/* Background */}
       <div className="blob-bg">
         <div className="blob blob-1" style={{ width: '300px', height: '300px', opacity: 0.15 }} />
-        <div className="blob blob-3" style={{ width: '200px', height: '200px', opacity: 0.1 }} />
+        <div className="blob blob-3" style={{ width: '220px', height: '220px', opacity: 0.08 }} />
       </div>
 
       <motion.div
@@ -145,23 +370,54 @@ export const DashboardPage = () => {
         variants={staggerContainer}
         className="max-w-4xl mx-auto space-y-6 relative z-10"
       >
-        {/* Welcome */}
         <motion.div variants={fadeInUp}>
           <div className="glass-card p-6 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-transparent to-purple-500/10" />
-            <div className="relative z-10">
+            <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-white mb-1">
-                Salom, <span className="neon-text">{user?.first_name || 'Foydalanuvchi'}</span>! 👋
-              </h1>
-              <p className="text-slate-400">Bugungi ish kuniga tayyor!</p>
+                  Salom, <span className="neon-text">{greetingName}</span>!
+                </h1>
+                <p className="text-slate-400">
+                  Asosiy boshqaruv paneli endi aniq hisoblar va real faoliyat bo&apos;yicha ishlaydi.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void loadDashboard({ silent: true })}
+                disabled={refreshing}
+                className="btn-secondary inline-flex items-center justify-center gap-2 sm:w-auto"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                Yangilash
+              </button>
             </div>
           </div>
         </motion.div>
 
-        {/* Stats Grid */}
+        {error && (
+          <motion.div variants={fadeInUp}>
+            <div className="glass-card p-4 border border-red-500/20 bg-red-500/5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-red-300">{error}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void loadDashboard()}
+                  className="btn-secondary sm:w-auto"
+                >
+                  Qayta urinish
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         <motion.div variants={fadeInUp} className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-          {statCards.map((stat, index) => (
-            <div key={index} className="glass-card p-4 group hover:scale-[1.02] transition-transform">
+          {statCards.map((stat) => (
+            <div key={stat.label} className="glass-card p-4 group hover:scale-[1.02] transition-transform">
               <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
                 <stat.icon className="w-5 h-5 text-white" />
               </div>
@@ -171,16 +427,15 @@ export const DashboardPage = () => {
           ))}
         </motion.div>
 
-        {/* Quick Actions */}
         <motion.div variants={fadeInUp}>
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Zap className="w-5 h-5 text-emerald-400" />
             Tezkor harakatlar
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {quickActions.map((action, index) => (
+            {quickActions.map((action) => (
               <button
-                key={index}
+                key={action.label}
                 onClick={action.onClick}
                 className="glass-card p-4 flex flex-col items-center gap-2 hover:scale-[1.05] transition-all group"
               >
@@ -193,12 +448,11 @@ export const DashboardPage = () => {
           </div>
         </motion.div>
 
-        {/* Recent Jobs */}
         <motion.div variants={fadeInUp}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
               <Briefcase className="w-5 h-5 text-blue-400" />
-              So'nggi ishlar
+              So&apos;nggi ochiq ishlar
             </h2>
             <button
               onClick={() => navigate('/jobs')}
@@ -208,7 +462,7 @@ export const DashboardPage = () => {
             </button>
           </div>
           <div className="space-y-3">
-            {recentJobs.length > 0 ? recentJobs.map(job => (
+            {recentJobs.length > 0 ? recentJobs.map((job) => (
               <div
                 key={job.id}
                 onClick={() => navigate(`/jobs/${job.id}`)}
@@ -220,14 +474,10 @@ export const DashboardPage = () => {
                     <p className="text-sm text-slate-400 mt-1 line-clamp-1">{job.description}</p>
                     <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2">
                       <span className="text-emerald-400 font-semibold text-sm">
-                        ${job.budget_min || 0} - ${job.budget_max || 0}
+                        {formatJobBudget(job)}
                       </span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs ${
-                        job.status === 'OPEN' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                        job.status === 'IN_PROGRESS' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
-                        'bg-slate-800 text-slate-400 border border-white/5'
-                      }`}>
-                        {job.status}
+                      <span className={`px-2 py-0.5 rounded-full text-xs border ${getJobStatusMeta(job.status).bg} ${getJobStatusMeta(job.status).color} ${getJobStatusMeta(job.status).border}`}>
+                        {getJobStatusMeta(job.status).label}
                       </span>
                     </div>
                   </div>
@@ -236,7 +486,7 @@ export const DashboardPage = () => {
               </div>
             )) : (
               <div className="glass-card p-6 text-center">
-                <p className="text-slate-400">Hozircha ishlar yo&apos;q</p>
+                <p className="text-slate-400">Hozircha ochiq ishlar yo&apos;q</p>
                 <button onClick={() => navigate('/jobs')} className="btn-secondary mt-3 text-sm">
                   Ishlarni ko&apos;rish
                 </button>
@@ -245,12 +495,11 @@ export const DashboardPage = () => {
           </div>
         </motion.div>
 
-        {/* Recent Chats */}
         <motion.div variants={fadeInUp}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-violet-400" />
-              So'nggi suhbatlar
+              So&apos;nggi suhbatlar
             </h2>
             <button
               onClick={() => navigate('/chat')}
@@ -260,44 +509,61 @@ export const DashboardPage = () => {
             </button>
           </div>
           <div className="glass-card overflow-hidden">
-            {recentRooms.length > 0 ? recentRooms.map((room, index) => (
-              <div
-                key={room.id}
-                onClick={() => navigate(`/chat/${room.id}`)}
-                className={`p-4 flex items-center gap-3 cursor-pointer hover:bg-white/5 transition-colors ${
-                  index < recentRooms.length - 1 ? 'border-b border-white/5' : ''
-                }`}
-              >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-semibold text-sm">
-                  {room.name?.charAt(0).toUpperCase()}
+            {recentRooms.length > 0 ? recentRooms.map((room, index) => {
+              const peer = getRoomPeer(room, currentUserId);
+              const roomName = getRoomDisplayName(room, currentUserId);
+              const avatarSrc = getUserAvatarSrc(peer);
+              const avatarInitial = getUserAvatarInitial(peer, roomName.charAt(0).toUpperCase() || 'S');
+
+              return (
+                <div
+                  key={room.id}
+                  onClick={() => navigate(`/chat/${room.id}`)}
+                  className={`p-4 flex items-center gap-3 cursor-pointer hover:bg-white/5 transition-colors ${
+                    index < recentRooms.length - 1 ? 'border-b border-white/5' : ''
+                  }`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-semibold text-sm overflow-hidden">
+                    {avatarSrc ? (
+                      <img src={avatarSrc} alt={roomName} className="w-full h-full object-cover" />
+                    ) : (
+                      avatarInitial
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-3">
+                      <h4 className="font-medium text-white truncate text-sm">{roomName}</h4>
+                      <span className="text-[11px] text-slate-500">
+                        {room.last_message?.created_at
+                          ? formatRelativeTime(room.last_message.created_at)
+                          : ''}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 truncate mt-1">
+                      {getRoomPreview(room)}
+                    </p>
+                  </div>
+                  {Number(room.unread_count || 0) > 0 && (
+                    <span className="w-5 h-5 rounded-full bg-emerald-500 text-white text-xs flex items-center justify-center">
+                      {room.unread_count > 9 ? '9+' : room.unread_count}
+                    </span>
+                  )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-white truncate text-sm">{room.name}</h4>
-                  <p className="text-xs text-slate-400 truncate">
-                    {room.last_message?.content || "Xabar yo'q"}
-                  </p>
-                </div>
-                {room.unread_count > 0 && (
-                  <span className="w-5 h-5 rounded-full bg-emerald-500 text-white text-xs flex items-center justify-center">
-                    {room.unread_count}
-                  </span>
-                )}
-              </div>
-            )) : (
+              );
+            }) : (
               <div className="p-6 text-center">
-                <p className="text-slate-400 text-sm">Suhbatlar yo&apos;q</p>
+                <p className="text-slate-400 text-sm">Suhbatlar hali yo&apos;q</p>
               </div>
             )}
           </div>
         </motion.div>
 
-        {/* Recent Mentorships */}
-        {mentorships.length > 0 && (
+        {recentSessions.length > 0 && (
           <motion.div variants={fadeInUp}>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-amber-400" />
-                Mentorlik
+                <Calendar className="w-5 h-5 text-amber-400" />
+                Yaqin sessiyalar
               </h2>
               <button
                 onClick={() => navigate('/barter')}
@@ -307,27 +573,113 @@ export const DashboardPage = () => {
               </button>
             </div>
             <div className="space-y-3">
-              {mentorships.map(item => (
-                <div key={item.id} className="glass-card p-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <h4 className="font-medium text-white text-sm">
-                        {item.skill_offered || item.mentor_name || 'Mentorlik'}
-                      </h4>
-                      <p className="text-xs text-slate-400 mt-1">
-                        {item.status}
-                      </p>
+              {recentSessions.map((session) => {
+                const partner = getSessionPartner(session, currentUserId);
+                const partnerName = getUserDisplayName(partner, 'Hamkor');
+                const statusClassName = getSessionStatusMeta(session.status);
+                const roomId = getChatRoomId(session);
+
+                return (
+                  <div key={session.id} className="glass-card p-4">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-medium text-white truncate">{session.topic || 'Barter sessiyasi'}</h3>
+                          <span className={`px-2 py-0.5 rounded-full text-xs border ${statusClassName}`}>
+                            {session.status}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-400 mt-1">{partnerName}</p>
+                        <p className="text-xs text-slate-500 mt-2">
+                          {session.scheduled_time
+                            ? new Date(session.scheduled_time).toLocaleString('uz-UZ', {
+                                dateStyle: 'medium',
+                                timeStyle: 'short',
+                              })
+                            : "Vaqt belgilanmagan"}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {roomId && (
+                          <button
+                            type="button"
+                            onClick={() => navigate(buildSessionChatRoute(session))}
+                            className="btn-secondary inline-flex items-center gap-2 text-sm"
+                          >
+                            <MessageSquare className="w-4 h-4" />
+                            Chat
+                          </button>
+                        )}
+                        {roomId && ['CONFIRMED', 'IN_PROGRESS'].includes(session.status) && (
+                          <button
+                            type="button"
+                            onClick={() => navigate(buildSessionVideoRoute(session))}
+                            className="btn-primary inline-flex items-center gap-2 text-sm"
+                          >
+                            <Video className="w-4 h-4" />
+                            Video
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      item.status === 'ACCEPTED' ? 'bg-emerald-500/10 text-emerald-400' :
-                      item.status === 'PENDING' ? 'bg-amber-500/10 text-amber-400' :
-                      'bg-slate-800 text-slate-400'
-                    }`}>
-                      {item.status}
-                    </span>
                   </div>
-                </div>
-              ))}
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+
+        {recentMentorships.length > 0 && (
+          <motion.div variants={fadeInUp}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-emerald-400" />
+                Mentorlik holati
+              </h2>
+              <button
+                onClick={() => navigate('/barter')}
+                className="text-sm text-emerald-400 flex items-center gap-1 hover:text-emerald-300 transition-colors"
+              >
+                Barchasi <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              {recentMentorships.map((item) => {
+                const partner = getMentorshipPartner(item, currentUserId);
+                const partnerName = getUserDisplayName(partner, 'Mentor');
+                const statusClassName = getMentorshipStatusMeta(item.status);
+
+                return (
+                  <div key={item.id} className="glass-card p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-medium text-white truncate">{partnerName}</h3>
+                          <span className={`px-2 py-0.5 rounded-full text-xs border ${statusClassName}`}>
+                            {item.status}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-400 mt-1 line-clamp-1">
+                          {item.message || 'Mentorlik so‘rovi'}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-2">
+                          {Number(item.duration_months || 0) > 0
+                            ? `${item.duration_months} oy`
+                            : 'Davomiylik ko‘rsatilmagan'}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => navigate('/barter')}
+                        className="btn-secondary inline-flex items-center gap-2 text-sm"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                        Ochish
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </motion.div>
         )}

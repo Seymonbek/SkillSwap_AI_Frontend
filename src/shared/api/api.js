@@ -1,10 +1,30 @@
 import axios from 'axios';
 import { clearStoredAuth, isTokenValid, redirectToLogin } from '@/shared/lib/auth';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://13.50.109.251:8000/api/v1';
-const WS_BASE_URL = import.meta.env.VITE_WS_URL;
+const trimTrailingSlash = (value = '') => value.replace(/\/+$/, '');
+
+const DEFAULT_DEV_API_URL = 'http://13.50.109.251:8000/api/v1';
+
+const API_BASE_URL = trimTrailingSlash(
+  import.meta.env.VITE_API_URL || (import.meta.env.DEV ? DEFAULT_DEV_API_URL : '/api/v1')
+);
+const WS_BASE_URL = trimTrailingSlash(import.meta.env.VITE_WS_URL || '');
 const DEBUG_WEBSOCKETS = import.meta.env.DEV && import.meta.env.VITE_DEBUG_WS === 'true';
 let refreshPromise = null;
+
+const getResolvedUrl = (value) => {
+  if (!value) return null;
+
+  try {
+    if (typeof window !== 'undefined') {
+      return new URL(value, window.location.origin);
+    }
+
+    return new URL(value);
+  } catch {
+    return null;
+  }
+};
 
 const normalizeRequestPath = (url = '') => {
   if (!url) return '';
@@ -37,6 +57,24 @@ const isPublicAuthRequest = (config = {}) => {
   return false;
 };
 
+const isOptionalAuthRequest = (config = {}) => {
+  const method = String(config.method || 'get').toLowerCase();
+  const path = normalizeRequestPath(config.url);
+
+  if (method !== 'get') {
+    return false;
+  }
+
+  return (
+    path.startsWith('/common/settings/') ||
+    path.startsWith('/freelance/jobs/') ||
+    path.startsWith('/search/jobs/') ||
+    path.startsWith('/search/users/') ||
+    path.startsWith('/users/search/') ||
+    path.startsWith('/subscriptions/')
+  );
+};
+
 const getRefreshAccessToken = async () => {
   if (!refreshPromise) {
     const refreshToken = localStorage.getItem('refresh_token');
@@ -60,6 +98,11 @@ const getRefreshAccessToken = async () => {
   }
 
   return refreshPromise;
+};
+
+export const getApiOrigin = () => {
+  const resolvedUrl = getResolvedUrl(API_BASE_URL);
+  return resolvedUrl?.origin || (typeof window !== 'undefined' ? window.location.origin : '');
 };
 
 /**
@@ -90,9 +133,26 @@ api.interceptors.request.use(
     }
 
     if (!token) {
+      const refreshToken = localStorage.getItem('refresh_token');
+      const hasValidRefreshToken = Boolean(refreshToken && isTokenValid(refreshToken));
+
+      if (isOptionalAuthRequest(config) && !hasValidRefreshToken) {
+        if (config.headers?.Authorization) {
+          delete config.headers.Authorization;
+        }
+        return config;
+      }
+
       try {
         token = await getRefreshAccessToken();
       } catch (refreshError) {
+        if (isOptionalAuthRequest(config)) {
+          if (config.headers?.Authorization) {
+            delete config.headers.Authorization;
+          }
+          return config;
+        }
+
         clearStoredAuth();
         redirectToLogin();
         return Promise.reject(refreshError);
@@ -114,12 +174,14 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const hadAuthHeader = Boolean(originalRequest?.headers?.Authorization);
 
     if (
       error.response?.status === 401 &&
       originalRequest &&
       !originalRequest._retry &&
-      !isPublicAuthRequest(originalRequest)
+      !isPublicAuthRequest(originalRequest) &&
+      hadAuthHeader
     ) {
       originalRequest._retry = true;
 
@@ -148,21 +210,21 @@ const normalizeSocketEndpoint = (endpoint) => {
 
 const getWebSocketBaseUrl = () => {
   if (WS_BASE_URL) {
-    return WS_BASE_URL.replace(/\/$/, '');
+    return WS_BASE_URL;
   }
 
-  try {
-    const apiUrl = new URL(API_BASE_URL);
+  const apiUrl = getResolvedUrl(API_BASE_URL);
+  if (apiUrl) {
     const protocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
     return `${protocol}//${apiUrl.host}`;
-  } catch {
-    if (typeof window !== 'undefined') {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      return `${protocol}//${window.location.host}`;
-    }
-
-    return '';
   }
+
+  if (typeof window !== 'undefined') {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}`;
+  }
+
+  return '';
 };
 
 // WebSocket connection helper
@@ -170,7 +232,12 @@ export const createWebSocket = (endpoint) => {
   const token = localStorage.getItem('access_token');
   const socketEndpoint = normalizeSocketEndpoint(endpoint);
   const baseUrl = getWebSocketBaseUrl();
-  const wsUrl = new URL(`${baseUrl}${socketEndpoint}`);
+
+  if (!baseUrl) {
+    throw new Error('WebSocket base URL is not configured');
+  }
+
+  const wsUrl = new URL(socketEndpoint, `${baseUrl}/`);
 
   if (token) {
     wsUrl.searchParams.set('token', token);
