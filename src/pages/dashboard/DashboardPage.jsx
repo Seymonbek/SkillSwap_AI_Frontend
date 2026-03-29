@@ -23,6 +23,7 @@ import {
   Calendar,
   ChevronRight,
   FileText,
+  MapPin,
   MessageSquare,
   RefreshCw,
   Search,
@@ -179,8 +180,11 @@ export const DashboardPage = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [stats, setStats] = useState({
+    totalJobs: 0,
     openJobs: 0,
+    totalRooms: 0,
     unreadMessages: 0,
+    totalBarter: 0,
     activeBarter: 0,
     unreadNotifications: 0,
   });
@@ -203,34 +207,53 @@ export const DashboardPage = () => {
     }
 
     const results = await Promise.allSettled([
-      freelanceService.getJobs({ status: 'OPEN', ordering: '-created_at', page: 1 }),
+      freelanceService.getJobs({ ordering: '-created_at', page: 1 }),
+      freelanceService.getJobs({ status: 'OPEN', page: 1 }),
       chatService.getRooms(),
       barterService.getMentorships(),
       barterService.getSessions(),
       notificationsService.getUnreadCount(),
     ]);
 
-    const [jobsResult, roomsResult, mentorshipsResult, sessionsResult, notificationsResult] = results;
+    const [
+      jobsResult,
+      openJobsResult,
+      roomsResult,
+      mentorshipsResult,
+      sessionsResult,
+      notificationsResult,
+    ] = results;
 
     let hasAnyData = false;
+    let nextTotalJobs = 0;
     let nextOpenJobs = 0;
+    let nextTotalRooms = 0;
     let nextUnreadMessages = 0;
+    let nextTotalBarter = 0;
     let nextActiveBarter = 0;
     let nextUnreadNotifications = 0;
 
     if (jobsResult.status === 'fulfilled') {
       const jobsPayload = jobsResult.value.data;
       const jobs = normalizeJobs(jobsPayload?.results || jobsPayload || []);
-      nextOpenJobs = jobsPayload?.count ?? jobs.length;
+      nextTotalJobs = jobsPayload?.count ?? jobs.length;
       setRecentJobs(jobs.slice(0, 3));
       hasAnyData = true;
     } else {
       setRecentJobs([]);
     }
 
+    if (openJobsResult.status === 'fulfilled') {
+      const openJobsPayload = openJobsResult.value.data;
+      const openJobs = normalizeJobs(openJobsPayload?.results || openJobsPayload || []);
+      nextOpenJobs = openJobsPayload?.count ?? openJobs.length;
+      hasAnyData = true;
+    }
+
     if (roomsResult.status === 'fulfilled') {
       const roomsPayload = roomsResult.value.data;
       const rooms = roomsPayload?.results || roomsPayload || [];
+      nextTotalRooms = roomsPayload?.count ?? rooms.length;
       nextUnreadMessages = rooms.reduce(
         (sum, room) => sum + Number(room.unread_count || 0),
         0
@@ -249,6 +272,7 @@ export const DashboardPage = () => {
         ACTIVE_MENTORSHIP_STATUSES.has(item.status)
       ).length;
 
+      nextTotalBarter += mentorships.length;
       nextActiveBarter += activeMentorshipsCount;
       setRecentMentorships(sortedMentorships.slice(0, 3));
       hasAnyData = true;
@@ -264,6 +288,7 @@ export const DashboardPage = () => {
         ACTIVE_SESSION_STATUSES.has(item.status)
       ).length;
 
+      nextTotalBarter += sessions.length;
       nextActiveBarter += activeSessionsCount;
       setRecentSessions(sortedSessions.slice(0, 3));
       hasAnyData = true;
@@ -278,8 +303,11 @@ export const DashboardPage = () => {
     }
 
     setStats({
+      totalJobs: nextTotalJobs,
       openJobs: nextOpenJobs,
+      totalRooms: nextTotalRooms,
       unreadMessages: nextUnreadMessages,
+      totalBarter: nextTotalBarter,
       activeBarter: nextActiveBarter,
       unreadNotifications: nextUnreadNotifications,
     });
@@ -310,26 +338,30 @@ export const DashboardPage = () => {
   const statCards = [
     {
       icon: Briefcase,
-      label: 'Ochiq ishlar',
-      value: stats.openJobs,
+      label: 'Jami ishlar',
+      value: stats.totalJobs,
+      hint: `${stats.openJobs} ta ochiq`,
       color: 'from-blue-500 to-cyan-500',
     },
     {
       icon: MessageSquare,
-      label: "O'qilmagan xabarlar",
-      value: stats.unreadMessages,
+      label: 'Xabarlar',
+      value: stats.totalRooms,
+      hint: `${stats.unreadMessages} ta o'qilmagan`,
       color: 'from-violet-500 to-purple-500',
     },
     {
       icon: BookOpen,
-      label: 'Faol barter',
-      value: stats.activeBarter,
+      label: 'Barter',
+      value: stats.totalBarter,
+      hint: `${stats.activeBarter} ta faol`,
       color: 'from-amber-500 to-orange-500',
     },
     {
       icon: Bell,
       label: 'Bildirishnomalar',
       value: stats.unreadNotifications,
+      hint: "O'qilmagan",
       color: 'from-red-500 to-pink-500',
     },
   ];
@@ -423,6 +455,7 @@ export const DashboardPage = () => {
               </div>
               <p className="text-2xl font-bold text-white">{stat.value}</p>
               <p className="text-sm text-slate-400">{stat.label}</p>
+              <p className="text-xs text-slate-500 mt-1">{stat.hint}</p>
             </div>
           ))}
         </motion.div>
@@ -472,6 +505,15 @@ export const DashboardPage = () => {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-white truncate">{job.title}</h3>
                     <p className="text-sm text-slate-400 mt-1 line-clamp-1">{job.description}</p>
+                    <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-slate-500">
+                      <span>{getUserDisplayName(job.owner, 'Mijoz')}</span>
+                      {job.owner?.location && (
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5" />
+                          {job.owner.location}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2">
                       <span className="text-emerald-400 font-semibold text-sm">
                         {formatJobBudget(job)}
@@ -486,7 +528,7 @@ export const DashboardPage = () => {
               </div>
             )) : (
               <div className="glass-card p-6 text-center">
-                <p className="text-slate-400">Hozircha ochiq ishlar yo&apos;q</p>
+                <p className="text-slate-400">Hozircha ishlar topilmadi</p>
                 <button onClick={() => navigate('/jobs')} className="btn-secondary mt-3 text-sm">
                   Ishlarni ko&apos;rish
                 </button>
