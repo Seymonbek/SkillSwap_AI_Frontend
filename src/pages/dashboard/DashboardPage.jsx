@@ -213,6 +213,10 @@ export const DashboardPage = () => {
     openJobs: 0,
     totalRooms: 0,
     unreadMessages: 0,
+    totalRequests: 0,
+    activeRequests: 0,
+    totalSessions: 0,
+    activeSessions: 0,
     totalBarter: 0,
     activeBarter: 0,
     unreadNotifications: 0,
@@ -277,6 +281,10 @@ export const DashboardPage = () => {
     let nextPremiumJobCost = 0;
     let nextTotalRooms = 0;
     let nextUnreadMessages = 0;
+    let nextTotalRequests = 0;
+    let nextActiveRequests = 0;
+    let nextTotalSessions = 0;
+    let nextActiveSessions = 0;
     let nextTotalBarter = 0;
     let nextActiveBarter = 0;
     let nextUnreadNotifications = 0;
@@ -336,6 +344,8 @@ export const DashboardPage = () => {
         ACTIVE_MENTORSHIP_STATUSES.has(item.status)
       ).length;
 
+      nextTotalRequests = mentorships.length;
+      nextActiveRequests = activeMentorshipsCount;
       nextTotalBarter += mentorships.length;
       nextActiveBarter += activeMentorshipsCount;
       setRecentMentorships(sortedMentorships.slice(0, 3));
@@ -352,6 +362,8 @@ export const DashboardPage = () => {
         ACTIVE_SESSION_STATUSES.has(item.status)
       ).length;
 
+      nextTotalSessions = sessions.length;
+      nextActiveSessions = activeSessionsCount;
       nextTotalBarter += sessions.length;
       nextActiveBarter += activeSessionsCount;
       setRecentSessions(sortedSessions.slice(0, 3));
@@ -371,6 +383,10 @@ export const DashboardPage = () => {
       openJobs: nextOpenJobs,
       totalRooms: nextTotalRooms,
       unreadMessages: nextUnreadMessages,
+      totalRequests: nextTotalRequests,
+      activeRequests: nextActiveRequests,
+      totalSessions: nextTotalSessions,
+      activeSessions: nextActiveSessions,
       totalBarter: nextTotalBarter,
       activeBarter: nextActiveBarter,
       unreadNotifications: nextUnreadNotifications,
@@ -414,36 +430,43 @@ export const DashboardPage = () => {
 
   const statCards = [
     {
+      icon: Briefcase,
+      label: 'Ishlar',
+      value: stats.totalJobs,
+      hint: `${stats.openJobs} ta ochiq`,
+      color: 'from-blue-500 to-cyan-500',
+    },
+    {
+      icon: Users,
+      label: 'Mentorlar',
+      value: platformStats.recommendedMentors,
+      hint: "Barter bo'limidagi tavsiyalar",
+      color: 'from-violet-500 to-purple-500',
+    },
+    {
+      icon: Calendar,
+      label: 'Yaqin sessiya',
+      value: stats.totalSessions,
+      hint: `${stats.activeSessions} ta faol`,
+      color: 'from-amber-500 to-orange-500',
+    },
+    {
+      icon: BookOpen,
+      label: "Faol so'rov",
+      value: stats.activeRequests,
+      hint: `${stats.totalRequests} ta jami`,
+      color: 'from-fuchsia-500 to-pink-500',
+    },
+  ];
+
+  const activityCards = [
+    {
       icon: Users,
       label: 'Mutaxassislar',
       value: platformStats.users,
       hint: 'Platformadagi foydalanuvchilar',
       color: 'from-cyan-500 to-blue-500',
     },
-    {
-      icon: Briefcase,
-      label: 'Ochiq ishlar',
-      value: platformStats.openJobs,
-      hint: "Live backenddagi e'lonlar",
-      color: 'from-blue-500 to-cyan-500',
-    },
-    {
-      icon: BookOpen,
-      label: 'Mentor tavsiyasi',
-      value: platformStats.recommendedMentors,
-      hint: 'Skilli bor mos userlar',
-      color: 'from-violet-500 to-purple-500',
-    },
-    {
-      icon: Wallet,
-      label: 'Time tokenlar',
-      value: tokenBalance,
-      hint: `${platformStats.premiumJobCost || 0} TK premium e'lon`,
-      color: 'from-amber-500 to-orange-500',
-    },
-  ];
-
-  const activityCards = [
     {
       icon: MessageSquare,
       label: 'Xabarlar',
@@ -452,10 +475,10 @@ export const DashboardPage = () => {
       color: 'from-violet-500 to-purple-500',
     },
     {
-      icon: BookOpen,
-      label: 'Barter',
-      value: stats.totalBarter,
-      hint: `${stats.activeBarter} ta faol`,
+      icon: Wallet,
+      label: 'Time tokenlar',
+      value: tokenBalance,
+      hint: `${platformStats.premiumJobCost || 0} TK premium e'lon`,
       color: 'from-amber-500 to-orange-500',
     },
     {
@@ -756,7 +779,7 @@ export const DashboardPage = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
               <Briefcase className="w-5 h-5 text-blue-400" />
-              So&apos;nggi ochiq ishlar
+              So&apos;nggi ishlar
             </h2>
             <button
               onClick={() => navigate('/jobs')}
