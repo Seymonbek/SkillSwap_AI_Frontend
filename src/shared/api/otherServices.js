@@ -1,5 +1,14 @@
 import api from './api';
 
+const normalizeSubscriptionPurchasePayload = (data) => {
+  if (typeof data === 'string') {
+    return { plan_slug: data };
+  }
+
+  const planSlug = data?.plan_slug || data?.plan?.slug || data?.slug;
+  return { plan_slug: planSlug };
+};
+
 // Search Service — /search/
 export const searchService = {
   searchJobs: (params) => api.get('/search/jobs/', { params }),
@@ -10,7 +19,7 @@ export const searchService = {
 export const subscriptionsService = {
   getPlans: (params) => api.get('/subscriptions/', { params }),
   getPlan: (id) => api.get(`/subscriptions/${id}/`),
-  buySubscription: (data) => api.post('/subscriptions/buy/', data),
+  buySubscription: (data) => api.post('/subscriptions/buy/', normalizeSubscriptionPurchasePayload(data)),
   getMySubscription: () => api.get('/subscriptions/my-subscription/').catch(() => ({ data: null })),
 };
 

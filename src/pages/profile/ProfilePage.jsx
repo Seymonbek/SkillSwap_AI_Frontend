@@ -302,12 +302,17 @@ export const ProfilePage = () => {
       } catch (err) {
         if (cancelled) return;
 
-        console.error('Profile load error:', err);
+        const isExpiredSessionError = err?.message === 'No valid refresh token';
+
+        if (!isExpiredSessionError) {
+          console.error('Profile load error:', err);
+        }
+
         setUser(null);
         setPortfolio([]);
         setReviews([]);
         setSkillTests([]);
-        setPageError(getApiErrorMessage(err, "Profil ma'lumotlarini yuklab bo'lmadi."));
+        setPageError(isExpiredSessionError ? '' : getApiErrorMessage(err, "Profil ma'lumotlarini yuklab bo'lmadi."));
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -712,9 +717,19 @@ export const ProfilePage = () => {
                   )}
                 </div>
 
-                <h1 className="mt-4 text-2xl font-bold text-white text-center">{displayName}</h1>
-                {user?.email && isOwnProfile && <p className="text-slate-400 text-center">{user.email}</p>}
-                {user?.bio && <p className="text-slate-300 text-sm mt-2 text-center max-w-md">{user.bio}</p>}
+                <h1 className="mt-4 w-full max-w-sm px-3 text-center text-xl font-bold leading-tight text-white break-words sm:max-w-md sm:px-0 sm:text-2xl">
+                  {displayName}
+                </h1>
+                {user?.email && isOwnProfile && (
+                  <p className="mt-1 w-full max-w-sm break-all px-4 text-center text-sm text-slate-400 sm:max-w-md sm:px-0">
+                    {user.email}
+                  </p>
+                )}
+                {user?.bio && (
+                  <p className="mt-2 w-full max-w-md break-words px-3 text-center text-sm text-slate-300 sm:px-0">
+                    {user.bio}
+                  </p>
+                )}
 
                 <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
                   {user?.is_verified_profile && (

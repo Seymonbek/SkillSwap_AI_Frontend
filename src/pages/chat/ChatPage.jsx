@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { chatService } from '@/shared/api';
-import { createWebSocket, API_BASE_URL } from '@/shared/api/api';
+import { createWebSocket, getApiOrigin } from '@/shared/api/api';
 import { Avatar } from '@/shared/ui/atoms/Avatar';
 import { Badge } from '@/shared/ui/atoms/Badge';
 import { useToast } from '@/shared/ui/providers/useToast';
@@ -238,7 +238,9 @@ export const ChatPage = () => {
     if (!value) return null;
     if (/^https?:\/\//i.test(value)) return value;
 
-    const apiOrigin = API_BASE_URL.replace('/api/v1', '');
+    const apiOrigin = getApiOrigin();
+    if (!apiOrigin) return value;
+
     return `${apiOrigin}${String(value).startsWith('/') ? '' : '/'}${value}`;
   }, []);
 

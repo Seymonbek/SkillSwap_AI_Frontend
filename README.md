@@ -42,10 +42,10 @@ npm install
 2. Create a local environment file:
 
 ```bash
-cp .env.example .env.local
+cp .env.development.example .env.development.local
 ```
 
-If you do not want to create `.env.local`, the app can still run, but it will fall back to the hardcoded API base URL inside `src/shared/api/api.js`. For real development and deployment, define your own environment values.
+For local development against the current backend, use `.env.development.local`. For real production deployment, use `.env.production` or same-origin reverse proxy with the values from `.env.example`.
 
 3. Start the development server:
 
@@ -61,11 +61,11 @@ http://localhost:5173
 
 ## Environment Variables
 
-Create `.env.local` in the project root.
+Create `.env.development.local` for local work, or `.env.production` for deployment.
 
 ```bash
-VITE_API_URL=http://127.0.0.1:8000/api/v1
-VITE_WS_URL=ws://127.0.0.1:8000
+VITE_API_URL=http://13.50.109.251:8000/api/v1
+VITE_WS_URL=ws://13.50.109.251:8000
 VITE_DEBUG_WS=false
 VITE_DEBUG_RTC=false
 ```
@@ -74,15 +74,15 @@ VITE_DEBUG_RTC=false
 
 | Variable | Required | Purpose | Example |
 | --- | --- | --- | --- |
-| `VITE_API_URL` | Recommended | Base URL for REST API requests | `http://127.0.0.1:8000/api/v1` |
-| `VITE_WS_URL` | Recommended | Base URL for WebSocket connections | `ws://127.0.0.1:8000` |
+| `VITE_API_URL` | Recommended | Base URL for REST API requests | `/api/v1` or `https://api.example.com/api/v1` |
+| `VITE_WS_URL` | Optional | Base URL for WebSocket connections | `wss://api.example.com` |
 | `VITE_DEBUG_WS` | Optional | Enables chat/notification WebSocket debug logs in development | `true` |
 | `VITE_DEBUG_RTC` | Optional | Enables video/call debug logs in development | `true` |
 
 ### Notes
 
 - If `VITE_WS_URL` is not set, the app derives the WebSocket origin from `VITE_API_URL`.
-- If `VITE_API_URL` is not set, the current code falls back to `http://13.50.109.251:8000/api/v1`. Override this for local development and production.
+- Production deploy uchun reverse proxy ishlatsangiz, `.env.example` dagi `/api/v1` varianti qulay.
 - Only variables prefixed with `VITE_` are exposed to the browser.
 
 ## Available Scripts
@@ -252,6 +252,7 @@ Before deploying, verify:
 - backend CORS allows the frontend origin
 - backend JWT/WebSocket authentication is working
 - `npm run build` succeeds without errors
+- service worker and manifest are being served correctly
 
 ### Hosting Options
 
@@ -262,6 +263,8 @@ The app can be deployed to any static hosting provider that serves the `dist/` d
 - Netlify
 - Cloudflare Pages
 - S3 + CDN
+
+For production release steps, Nginx reverse proxy, PWA, and server checklist, open [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ## Validation and Quality Checks
 
@@ -280,8 +283,8 @@ Current repository status:
 
 ## Known Implementation Notes
 
-- Routes are currently imported eagerly in `src/app/App.jsx`; route-level code splitting is not set up right now
-- The production build currently emits a large bundle warning for the main JS chunk
+- Routes are now lazy-loaded in `src/app/App.jsx` to reduce initial bundle cost
+- The app includes a service worker, offline fallback, and install prompt for PWA-style installation
 - `src_backup/` is a historical copy and is not part of the active app
 - API schema references are available in `api.yaml`, but the backend remains the source of truth for API behavior
 
@@ -305,6 +308,19 @@ Check:
 - the WebSocket origin is not blocked by proxy or SSL configuration
 - the access token is still valid when the socket is opened
 
+### Route refresh returns 404 on the server
+
+Check that your web server has SPA fallback enabled, for example `try_files $uri $uri/ /index.html;` in Nginx.
+
+### Chrome does not show install prompt
+
+Check:
+
+- the app is served over `https`
+- `site.webmanifest` is reachable
+- `sw.js` is registered without errors
+- the site has been visited enough for Chrome to consider it installable
+
 ### API requests fail with CORS errors
 
 Check backend `CORS_ALLOWED_ORIGINS` and confirm it includes the frontend domain.
@@ -316,6 +332,8 @@ Check that refresh-token rotation is handled correctly and that the latest `refr
 ## Related Documents
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
+- [DEPLOYMENT.md](./DEPLOYMENT.md)
+- [SMOKE_TEST.md](./SMOKE_TEST.md)
 - [api.yaml](./api.yaml)
 
 ## Maintainer Notes

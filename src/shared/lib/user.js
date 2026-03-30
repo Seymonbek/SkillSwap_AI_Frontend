@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '@/shared/api/api';
+import { getApiOrigin } from '@/shared/api/api';
 
 const OFFERED_SKILL_PREFIX = '[O]';
 const WANTED_SKILL_PREFIX = '[W]';
@@ -61,18 +61,6 @@ export const getUserDisplayName = (user, fallback = 'Foydalanuvchi') => {
   if (user?.username) return user.username;
 
   return fallback;
-};
-
-const getApiOrigin = () => {
-  try {
-    return new URL(API_BASE_URL).origin;
-  } catch {
-    if (typeof window !== 'undefined') {
-      return window.location.origin;
-    }
-
-    return '';
-  }
 };
 
 const rewriteMediaUrlToApiOrigin = (value) => {

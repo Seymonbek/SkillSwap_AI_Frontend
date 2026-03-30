@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { searchService } from '@/shared/api';
+import { formatJobBudget, getJobStatusMeta, normalizeJobs } from '@/shared/lib/job';
 import { getUserAvatarSrc, getUserPrimaryRating } from '@/shared/lib/user';
 import {
   Search as SearchIcon, Briefcase, User, Filter,
@@ -29,7 +30,8 @@ export const SearchPage = () => {
         ? await searchService.searchJobs(params)
         : await searchService.searchUsers(params);
 
-      setResults(res.data?.results || res.data || []);
+      const items = res.data?.results || res.data || [];
+      setResults(nextSearchType === 'jobs' ? normalizeJobs(items) : items);
     } catch (err) {
       console.error('Search error:', err);
       setResults([]);
@@ -138,9 +140,11 @@ export const SearchPage = () => {
                   <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2">
                     <span className="text-emerald-400 font-semibold text-sm flex items-center gap-1">
                       <DollarSign className="w-3.5 h-3.5" />
-                      {item.budget_min || 0} - {item.budget_max || 0}
+                      {formatJobBudget(item)}
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-xs bg-slate-800 text-slate-400">{item.status}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs ${getJobStatusMeta(item.status).bg} ${getJobStatusMeta(item.status).color}`}>
+                      {getJobStatusMeta(item.status).label}
+                    </span>
                     {item.skills_required?.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {item.skills_required.slice(0, 2).map((s, i) => (

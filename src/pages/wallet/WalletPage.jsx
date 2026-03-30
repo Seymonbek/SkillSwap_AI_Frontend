@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { paymentsService, authService } from '@/shared/api';
+import { getApiErrorMessage } from '@/shared/lib/apiError';
 import {
   Wallet, CreditCard, ArrowUpRight, ArrowDownLeft,
-  DollarSign, TrendingUp, Plus, X, AlertCircle,
+  Plus, X, AlertCircle,
   Check, Loader2, Shield, Coins
 } from 'lucide-react';
 
@@ -26,6 +27,8 @@ export const WalletPage = () => {
     fetchUserData();
   }, []);
 
+  const availableUsdBalance = Number(user?.wallet_summary?.usd_balance ?? user?.wallet?.usd_balance ?? 0);
+
   const fetchUserData = async () => {
     try {
       const res = await authService.getMe();
@@ -41,6 +44,11 @@ export const WalletPage = () => {
     e.preventDefault();
     if (!buyAmount || parseInt(buyAmount) <= 0) {
       setBuyError("To'g'ri miqdor kiriting");
+      return;
+    }
+
+    if (availableUsdBalance <= 0) {
+      setBuyError("USD balansingiz yo'q. Hozirgi backend flow tokenni mavjud USD balans evaziga sotib oladi.");
       return;
     }
 
@@ -62,17 +70,17 @@ export const WalletPage = () => {
         setBuyAmount('');
       }, 2000);
     } catch (err) {
-      setBuyError(err.response?.data?.detail || "Xatolik yuz berdi");
+      setBuyError(getApiErrorMessage(err, "Token sotib olib bo'lmadi"));
     } finally {
       setBuying(false);
     }
   };
 
   const tokenPackages = [
-    { amount: 10, price: '1.00', popular: false },
-    { amount: 50, price: '4.50', popular: false },
-    { amount: 100, price: '8.00', popular: true },
-    { amount: 500, price: '35.00', popular: false },
+    { amount: 10, popular: false },
+    { amount: 50, popular: false },
+    { amount: 100, popular: true },
+    { amount: 500, popular: false },
   ];
 
   if (loading) {
@@ -165,11 +173,27 @@ export const WalletPage = () => {
           </div>
         </motion.div>
 
+        {availableUsdBalance <= 0 && (
+          <motion.div variants={fadeInUp}>
+            <div className="glass-card p-4 border border-amber-500/20 bg-amber-500/5">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-white">Token olish hozircha USD balans orqali ishlaydi</p>
+                  <p className="text-sm text-slate-400 mt-1">
+                    Sizda USD balans 0. Shu sabab `buy-tokens` so&apos;rovi 400 qaytargan. Karta bilan to&apos;ldirish flow hali frontendga ulanmagan.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Token Packages */}
         <motion.div variants={fadeInUp}>
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Coins className="w-5 h-5 text-amber-400" />
-            Token paketlari
+            Tez tanlash
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {tokenPackages.map((pkg) => (
@@ -188,7 +212,7 @@ export const WalletPage = () => {
                 <div className="text-center">
                   <p className="text-3xl font-bold text-white mb-1">{pkg.amount}</p>
                   <p className="text-sm text-slate-400 mb-3">token</p>
-                  <p className="text-emerald-400 font-semibold">${pkg.price}</p>
+                  <p className="text-xs text-slate-500">USD balansdan yechiladi</p>
                 </div>
               </div>
             ))}
@@ -226,7 +250,7 @@ export const WalletPage = () => {
               className="glass-card w-full max-w-md"
             >
               <div className="p-6 border-b border-white/10 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white">Token sotib olish</h2>
+                <h2 className="text-xl font-bold text-white">USD balansdan token olish</h2>
                 <button onClick={() => { setShowBuyModal(false); setBuyError(''); setBuySuccess(false); }} className="p-2 rounded-lg hover:bg-white/5">
                   <X className="w-5 h-5 text-slate-400" />
                 </button>
@@ -259,14 +283,21 @@ export const WalletPage = () => {
                         className="glass-input w-full"
                         required
                       />
+                      <p className="mt-2 text-xs text-slate-500">
+                        Hozirgi backend flow tokenlarni mavjud USD balansdan yechib beradi. Joriy USD balans: {availableUsdBalance || 0}
+                      </p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3 pt-2">
                       <button type="button" onClick={() => setShowBuyModal(false)} className="btn-secondary flex-1 py-3">
                         Bekor qilish
                       </button>
-                      <button type="submit" disabled={buying} className="btn-primary flex-1 py-3 flex items-center justify-center gap-2">
+                      <button
+                        type="submit"
+                        disabled={buying || availableUsdBalance <= 0}
+                        className="btn-primary flex-1 py-3 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
                         {buying ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                          <><CreditCard className="w-4 h-4" /> Sotib olish</>
+                          <><Coins className="w-4 h-4" /> Token olish</>
                         )}
                       </button>
                     </div>

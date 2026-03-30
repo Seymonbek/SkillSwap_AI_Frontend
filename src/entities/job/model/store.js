@@ -1,5 +1,12 @@
 import { create } from 'zustand';
 import { freelanceService } from '@/shared/api';
+import {
+  extractPaginatedData,
+  normalizeJob,
+  normalizeJobs,
+  normalizeProposal,
+  normalizeProposals,
+} from '@/shared/lib/job';
 
 export const useJobStore = create((set, get) => ({
   // State
@@ -44,14 +51,10 @@ export const useJobStore = create((set, get) => ({
       Object.assign(queryParams, params);
 
       const res = await freelanceService.getJobs(queryParams);
-      const data = res.data;
+      const { items, pagination } = extractPaginatedData(res.data);
       set({
-        jobs: data?.results || data || [],
-        pagination: {
-          count: data?.count || 0,
-          next: data?.next || null,
-          previous: data?.previous || null,
-        },
+        jobs: normalizeJobs(items),
+        pagination,
         isLoading: false,
       });
     } catch (error) {
@@ -63,8 +66,9 @@ export const useJobStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const res = await freelanceService.getJob(id);
-      set({ currentJob: res.data, isLoading: false });
-      return res.data;
+      const currentJob = normalizeJob(res.data);
+      set({ currentJob, isLoading: false });
+      return currentJob;
     } catch (error) {
       set({ error: error.response?.data, isLoading: false });
       return null;
@@ -75,8 +79,9 @@ export const useJobStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const res = await freelanceService.createJob(data);
-      set((state) => ({ myJobs: [res.data, ...state.myJobs], isLoading: false }));
-      return { success: true, job: res.data };
+      const job = normalizeJob(res.data);
+      set((state) => ({ myJobs: [job, ...state.myJobs], isLoading: false }));
+      return { success: true, job };
     } catch (error) {
       set({ error: error.response?.data, isLoading: false });
       return { success: false, error: error.response?.data };
@@ -87,13 +92,14 @@ export const useJobStore = create((set, get) => ({
     set({ isLoading: true });
     try {
       const res = await freelanceService.updateJob(id, data);
+      const job = normalizeJob(res.data);
       set((state) => ({
-        jobs: state.jobs.map((j) => (j.id === id ? res.data : j)),
-        myJobs: state.myJobs.map((j) => (j.id === id ? res.data : j)),
-        currentJob: state.currentJob?.id === id ? res.data : state.currentJob,
+        jobs: state.jobs.map((j) => (j.id === id ? job : j)),
+        myJobs: state.myJobs.map((j) => (j.id === id ? job : j)),
+        currentJob: state.currentJob?.id === id ? job : state.currentJob,
         isLoading: false,
       }));
-      return { success: true, job: res.data };
+      return { success: true, job };
     } catch (error) {
       set({ error: error.response?.data, isLoading: false });
       return { success: false, error: error.response?.data };
@@ -126,7 +132,11 @@ export const useJobStore = create((set, get) => ({
   generateAndSaveJob: async (data) => {
     try {
       const res = await freelanceService.generateJob(data);
-      return { success: true, data: res.data };
+      const normalizedData = {
+        ...res.data,
+        data: res.data?.data ? normalizeJob(res.data.data) : undefined,
+      };
+      return { success: true, data: normalizedData };
     } catch (error) {
       return { success: false, error: error.response?.data };
     }
@@ -145,9 +155,10 @@ export const useJobStore = create((set, get) => ({
   fetchProposals: async (params = {}) => {
     try {
       const res = await freelanceService.getProposals(params);
-      const data = res.data?.results || res.data || [];
-      set({ proposals: data });
-      return data;
+      const { items } = extractPaginatedData(res.data);
+      const proposals = normalizeProposals(items);
+      set({ proposals });
+      return proposals;
     } catch (error) {
       set({ error: error.response?.data });
       return [];
@@ -158,8 +169,9 @@ export const useJobStore = create((set, get) => ({
     set({ isLoading: true });
     try {
       const res = await freelanceService.createProposal(data);
-      set((state) => ({ proposals: [res.data, ...state.proposals], isLoading: false }));
-      return { success: true, proposal: res.data };
+      const proposal = normalizeProposal(res.data);
+      set((state) => ({ proposals: [proposal, ...state.proposals], isLoading: false }));
+      return { success: true, proposal };
     } catch (error) {
       set({ error: error.response?.data, isLoading: false });
       return { success: false, error: error.response?.data };

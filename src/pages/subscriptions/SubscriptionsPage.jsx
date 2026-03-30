@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { subscriptionsService } from '@/shared/api';
+import { getApiErrorMessage } from '@/shared/lib/apiError';
 import {
   Crown, Check, Star, Zap, Shield,
   Loader2, AlertCircle, Sparkles, X
@@ -8,10 +9,33 @@ import {
 
 const fadeInUp = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
 const staggerContainer = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
+const SUBSCRIPTION_CACHE_KEY = 'skillswap:subscription-cache';
+
+const getCachedSubscription = () => {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const rawValue = window.localStorage.getItem(SUBSCRIPTION_CACHE_KEY);
+    return rawValue ? JSON.parse(rawValue) : null;
+  } catch {
+    return null;
+  }
+};
+
+const persistSubscription = (value) => {
+  if (typeof window === 'undefined') return;
+
+  if (!value) {
+    window.localStorage.removeItem(SUBSCRIPTION_CACHE_KEY);
+    return;
+  }
+
+  window.localStorage.setItem(SUBSCRIPTION_CACHE_KEY, JSON.stringify(value));
+};
 
 export const SubscriptionsPage = () => {
   const [plans, setPlans] = useState([]);
-  const [mySubscription, setMySubscription] = useState(null);
+  const [mySubscription, setMySubscription] = useState(() => getCachedSubscription());
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState(false);
   const [buyError, setBuyError] = useState('');
@@ -22,16 +46,9 @@ export const SubscriptionsPage = () => {
 
   const fetchData = async () => {
     try {
-      const [plansRes, subRes] = await Promise.allSettled([
-        subscriptionsService.getPlans(),
-        subscriptionsService.getMySubscription(),
-      ]);
-      if (plansRes.status === 'fulfilled') {
-        setPlans(plansRes.value.data?.results || plansRes.value.data || []);
-      }
-      if (subRes.status === 'fulfilled') {
-        setMySubscription(subRes.value.data);
-      }
+      const plansRes = await subscriptionsService.getPlans();
+      setPlans(plansRes.data?.results || plansRes.data || []);
+      setMySubscription(getCachedSubscription());
     } catch (err) {
       console.error('Fetch subscriptions error:', err);
     } finally {
@@ -39,14 +56,21 @@ export const SubscriptionsPage = () => {
     }
   };
 
-  const handleBuy = async (planId) => {
+  const handleBuy = async (plan) => {
     setBuying(true);
     setBuyError('');
     try {
-      await subscriptionsService.buySubscription({ plan: planId });
-      fetchData();
+      const res = await subscriptionsService.buySubscription({ plan_slug: plan.slug });
+      const nextSubscription = {
+        ...res.data,
+        plan_slug: plan.slug,
+        plan_name: res.data?.plan_name || plan.name,
+      };
+      setMySubscription(nextSubscription);
+      persistSubscription(nextSubscription);
+      await fetchData();
     } catch (err) {
-      setBuyError(err.response?.data?.detail || "Xatolik yuz berdi");
+      setBuyError(getApiErrorMessage(err, "Obunani sotib olib bo'lmadi"));
     } finally {
       setBuying(false);
     }
@@ -122,7 +146,10 @@ export const SubscriptionsPage = () => {
           {plans.length > 0 ? plans.map((plan, index) => {
             const IconComp = planIcons[index % planIcons.length];
             const color = planColors[index % planColors.length];
-            const isActive = mySubscription?.plan === plan.id || mySubscription?.plan?.id === plan.id;
+            const isActive =
+              mySubscription?.plan_slug === plan.slug ||
+              mySubscription?.plan?.slug === plan.slug ||
+              mySubscription?.plan_name === plan.name;
 
             return (
               <div key={plan.id} className={`glass-card p-6 relative ${isActive ? 'border-emerald-500/30 ring-1 ring-emerald-500/20' : ''}`}>
@@ -151,7 +178,7 @@ export const SubscriptionsPage = () => {
                 </div>
 
                 <button
-                  onClick={() => !isActive && handleBuy(plan.id)}
+                  onClick={() => !isActive && handleBuy(plan)}
                   disabled={isActive || buying}
                   className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
                     isActive ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 cursor-default'

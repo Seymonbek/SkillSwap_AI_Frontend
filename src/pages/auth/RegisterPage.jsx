@@ -1,17 +1,48 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { authService } from '@/shared/api';
+import { clearStoredAuth } from '@/shared/lib/auth';
 import { User, Mail, Lock, Phone, ArrowLeft, ArrowRight, Check, Sparkles, Eye, EyeOff, AlertCircle } from 'lucide-react';
+
+const formatAuthError = (data, fallback) => {
+  if (!data) return fallback;
+  if (typeof data.detail === 'string') return data.detail;
+
+  const messages = Object.entries(data)
+    .flatMap(([field, value]) => {
+      const values = Array.isArray(value) ? value : [value];
+      return values
+        .filter(Boolean)
+        .map((item) => {
+          if (typeof item !== 'string') return '';
+          return field === 'detail' ? item : `${field}: ${item}`;
+        })
+        .filter(Boolean);
+    });
+
+  return messages.length > 0 ? messages.join('. ') : fallback;
+};
+
+const hasExistingEmailError = (data) => {
+  if (!data?.email) return false;
+  const emailMessages = Array.isArray(data.email) ? data.email : [data.email];
+  const normalized = emailMessages.join(' ').toLowerCase();
+  return normalized.includes('already') || normalized.includes('allaqachon') || normalized.includes('exists');
+};
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [activationEmail, setActivationEmail] = useState('');
+  const [canResendActivation, setCanResendActivation] = useState(false);
+  const [resendingActivation, setResendingActivation] = useState(false);
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -20,6 +51,10 @@ export const RegisterPage = () => {
     password: '',
     re_password: '',
   });
+
+  useEffect(() => {
+    clearStoredAuth();
+  }, []);
 
   const validateStep1 = () => {
     if (!form.first_name.trim()) return 'Ism majburiy';
@@ -36,9 +71,27 @@ export const RegisterPage = () => {
     return null;
   };
 
+  const handleResendActivation = async () => {
+    if (!activationEmail) return;
+
+    setResendingActivation(true);
+    setError('');
+    setInfoMessage('');
+
+    try {
+      await authService.resendActivation({ email: activationEmail });
+      setInfoMessage("Aktivatsiya xati qayta yuborildi. Pochtangizni va spam papkasini tekshiring.");
+    } catch (err) {
+      setError(formatAuthError(err.response?.data, "Aktivatsiya xatini qayta yuborib bo'lmadi."));
+    } finally {
+      setResendingActivation(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setInfoMessage('');
 
     if (step === 1) {
       const err = validateStep1();
@@ -52,51 +105,30 @@ export const RegisterPage = () => {
 
     setLoading(true);
     try {
+      const normalizedEmail = form.email.trim().toLowerCase();
       await authService.createUser({
-        first_name: form.first_name,
-        last_name: form.last_name,
-        email: form.email,
+        first_name: form.first_name.trim(),
+        last_name: form.last_name.trim(),
+        email: normalizedEmail,
         password: form.password,
         re_password: form.re_password,
       });
 
-      // Auto-login after registration
-      let autoLoginSucceeded = false;
-      try {
-        const loginRes = await authService.login({
-          email: form.email,
-          password: form.password,
-        });
-
-        if (loginRes.data?.access && loginRes.data?.refresh) {
-          localStorage.setItem('access_token', loginRes.data.access);
-          localStorage.setItem('refresh_token', loginRes.data.refresh);
-
-          const userRes = await authService.getMe();
-          localStorage.setItem('user', JSON.stringify(userRes.data));
-          autoLoginSucceeded = true;
-        }
-      } catch {
-        // If auto-login fails (e.g. activation required), redirect to login
-      }
-
-      if (autoLoginSucceeded) {
-        navigate('/dashboard');
-      } else {
-        setRegistrationComplete(true);
-      }
+      setActivationEmail(normalizedEmail);
+      setCanResendActivation(true);
+      setRegistrationComplete(true);
+      setInfoMessage("Akkaunt yaratildi. Hozir login qilishdan oldin email orqali aktivatsiya talab qilinadi.");
     } catch (err) {
       const data = err.response?.data;
-      if (data) {
-        const messages = [];
-        Object.values(data).forEach((val) => {
-          const value = Array.isArray(val) ? val.join(', ') : val;
-          messages.push(value);
-        });
-        setError(messages.join('. '));
-      } else {
-        setError("Ro'yxatdan o'tishda xatolik yuz berdi");
+      const normalizedEmail = form.email.trim().toLowerCase();
+
+      if (hasExistingEmailError(data)) {
+        setActivationEmail(normalizedEmail);
+        setCanResendActivation(true);
+        setInfoMessage("Bu email bilan akkaunt allaqachon yaratilgan. Agar hali kira olmasangiz, aktivatsiya xatini qayta yuboring.");
       }
+
+      setError(formatAuthError(data, "Ro'yxatdan o'tishda xatolik yuz berdi"));
     } finally {
       setLoading(false);
     }
@@ -155,6 +187,16 @@ export const RegisterPage = () => {
             </motion.div>
           )}
 
+          {infoMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4"
+            >
+              <p className="text-sm text-emerald-300">{infoMessage}</p>
+            </motion.div>
+          )}
+
           {registrationComplete ? (
             <div className="space-y-5">
               <motion.div
@@ -163,12 +205,23 @@ export const RegisterPage = () => {
                 className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20"
               >
                 <p className="text-emerald-300 text-sm">
-                  Akkaunt yaratildi. Email tasdiqlash talab qilinsa pochtangizni tekshiring va keyin login qiling.
+                  Akkaunt yaratildi. {activationEmail ? `${activationEmail} manziliga` : 'Pochtangizga'} aktivatsiya xati yuborilgan bo'lishi mumkin. Emailni tasdiqlagandan keyin login qiling.
                 </p>
               </motion.div>
-              <button onClick={() => navigate('/login')} className="btn-primary w-full py-3">
-                Login sahifasiga o&apos;tish
-              </button>
+              <div className="flex flex-col gap-3">
+                {canResendActivation && (
+                  <button
+                    onClick={handleResendActivation}
+                    disabled={resendingActivation}
+                    className="btn-secondary w-full py-3"
+                  >
+                    {resendingActivation ? 'Yuborilmoqda...' : 'Aktivatsiya xatini qayta yuborish'}
+                  </button>
+                )}
+                <button onClick={() => navigate('/login')} className="btn-primary w-full py-3">
+                  Login sahifasiga o&apos;tish
+                </button>
+              </div>
             </div>
           ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -293,6 +346,21 @@ export const RegisterPage = () => {
               )}
             </button>
           </form>
+          )}
+
+          {!registrationComplete && canResendActivation && (
+            <div className="mt-5 rounded-xl border border-amber-500/15 bg-amber-500/5 p-4">
+              <p className="text-sm text-amber-200">
+                Agar bu email bilan akkaunt oldinroq yaratilgan bo'lsa, yangi ro'yxatdan o'tish o'rniga aktivatsiya xatini qayta yuborishingiz mumkin.
+              </p>
+              <button
+                onClick={handleResendActivation}
+                disabled={resendingActivation}
+                className="btn-secondary mt-3 w-full py-3"
+              >
+                {resendingActivation ? 'Yuborilmoqda...' : 'Aktivatsiya xatini qayta yuborish'}
+              </button>
+            </div>
           )}
 
           {!registrationComplete && step === 1 && (

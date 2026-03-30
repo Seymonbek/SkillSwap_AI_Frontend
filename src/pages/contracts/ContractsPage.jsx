@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { freelanceService } from '@/shared/api';
+import { Button } from '@/shared/ui/atoms/Button';
+import { Modal } from '@/shared/ui/organisms/Modal';
 import {
   FileText, ChevronRight, Clock, DollarSign,
   CheckCircle2, AlertCircle, User, Loader2,
@@ -31,6 +33,11 @@ export const ContractsPage = () => {
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitData, setSubmitData] = useState({ comment: '', link: '', file: null });
   const [submitting, setSubmitting] = useState(false);
+  const [showRevisionModal, setShowRevisionModal] = useState(false);
+  const [revisionSubmissionId, setRevisionSubmissionId] = useState(null);
+  const [revisionFeedback, setRevisionFeedback] = useState('');
+  const [revisionError, setRevisionError] = useState('');
+  const [requestingRevision, setRequestingRevision] = useState(false);
 
   useEffect(() => { fetchContracts(); }, []);
 
@@ -116,18 +123,49 @@ export const ContractsPage = () => {
     }
   };
 
-  const handleRequestRevision = async (id) => {
+  const openRevisionModal = (id) => {
+    setRevisionSubmissionId(id);
+    setRevisionFeedback('');
+    setRevisionError('');
+    setShowRevisionModal(true);
+  };
+
+  const closeRevisionModal = () => {
+    if (requestingRevision) return;
+    setShowRevisionModal(false);
+    setRevisionSubmissionId(null);
+    setRevisionFeedback('');
+    setRevisionError('');
+  };
+
+  const handleRequestRevision = async (event) => {
+    event.preventDefault();
+
+    const trimmedFeedback = revisionFeedback.trim();
+    if (trimmedFeedback.length < 5) {
+      setRevisionError("Izoh kamida 5 ta belgidan iborat bo'lishi kerak.");
+      return;
+    }
+
+    if (!revisionSubmissionId) {
+      setRevisionError('Qaysi topshiriq uchun revision yuborilishi aniqlanmadi.');
+      return;
+    }
+
+    setRequestingRevision(true);
+    setRevisionError('');
+
     try {
-      const feedback = window.prompt("Qayta ishlash uchun izoh yozing:");
-      if (!feedback || feedback.trim().length < 5) {
-        return;
-      }
-      await freelanceService.requestRevision(id, { feedback: feedback.trim() });
+      await freelanceService.requestRevision(revisionSubmissionId, { feedback: trimmedFeedback });
       if (selectedContract?.id) {
         await fetchSubmissions(selectedContract.id);
       }
+      closeRevisionModal();
     } catch (err) {
       console.error('Request revision error:', err);
+      setRevisionError(err.response?.data?.detail || "Qayta ishlash so'rovini yuborib bo'lmadi.");
+    } finally {
+      setRequestingRevision(false);
     }
   };
 
@@ -269,7 +307,7 @@ export const ContractsPage = () => {
                         {sub.status === 'SUBMITTED' && (
                           <>
                             <button onClick={() => handleApproveSubmission(sub.id)} className="btn-primary text-xs px-2 py-1">✓</button>
-                            <button onClick={() => handleRequestRevision(sub.id)} className="btn-secondary text-xs px-2 py-1">↩</button>
+                            <button onClick={() => openRevisionModal(sub.id)} className="btn-secondary text-xs px-2 py-1">↩</button>
                           </>
                         )}
                       </div>
@@ -367,6 +405,54 @@ export const ContractsPage = () => {
           </div>
         )}
       </AnimatePresence>
+
+      <Modal
+        isOpen={showRevisionModal}
+        onClose={closeRevisionModal}
+        title="Qayta ishlash so'rovi"
+        description="Freelancer nima ustida ishlashi kerakligini aniq yozib qoldiring."
+        footer={(
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={closeRevisionModal}
+              disabled={requestingRevision}
+            >
+              Bekor qilish
+            </Button>
+            <Button
+              type="submit"
+              form="revision-request-form"
+              loading={requestingRevision}
+            >
+              Yuborish
+            </Button>
+          </>
+        )}
+      >
+        <form id="revision-request-form" onSubmit={handleRequestRevision} className="space-y-4">
+          {revisionError && (
+            <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+              {revisionError}
+            </div>
+          )}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-300">
+              Revision izohi
+            </label>
+            <textarea
+              value={revisionFeedback}
+              onChange={(event) => setRevisionFeedback(event.target.value)}
+              className="glass-input h-28 w-full resize-none"
+              placeholder="Masalan: dizayndagi ranglarni to'g'rilang va landing hero qismiga CTA qo'shing."
+            />
+          </div>
+          <p className="text-xs text-slate-500">
+            Aniq feedback yozilsa, freelancer ishni tezroq va to'g'ri qayta topshiradi.
+          </p>
+        </form>
+      </Modal>
     </div>
   );
 };

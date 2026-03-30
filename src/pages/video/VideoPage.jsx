@@ -4,9 +4,11 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { chatService, authService, barterService } from '@/shared/api';
 import { createWebSocket } from '@/shared/api/api';
 import { useBarterStore } from '@/entities/barter/model/store';
+import { Modal } from '@/shared/ui/organisms/Modal';
+import { Button } from '@/shared/ui/atoms/Button';
 import {
   Video, PhoneOff, Mic, MicOff, Camera, CameraOff,
-  MonitorUp, ChevronLeft, History, User, Loader2, Star
+  MonitorUp, ChevronLeft, History, User, Loader2, Star, ShieldAlert
 } from 'lucide-react';
 
 const DEBUG_CALLS = import.meta.env.DEV && import.meta.env.VITE_DEBUG_RTC === 'true';
@@ -101,6 +103,7 @@ export const VideoPage = () => {
   const [reviewReceiverId, setReviewReceiverId] = useState(null);
   const [reviewError, setReviewError] = useState('');
   const [sessionSnapshot, setSessionSnapshot] = useState(null);
+  const [mediaPermissionError, setMediaPermissionError] = useState('');
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -383,6 +386,7 @@ export const VideoPage = () => {
 
   const initializeWebRTC = async (iceServers, roomCallId, callInstanceId) => {
     try {
+      setMediaPermissionError('');
       // Get local media
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
@@ -449,7 +453,7 @@ export const VideoPage = () => {
       if (DEBUG_CALLS) {
         console.error('WebRTC init error:', err);
       }
-      alert("Kamera yoki mikrofonga ruxsat berilmadi");
+      setMediaPermissionError("Kamera yoki mikrofonga ruxsat berilmadi. Brauzer sozlamasidan ruxsatni yoqing va qayta urinib ko'ring.");
       return false;
     }
   };
@@ -1043,6 +1047,47 @@ export const VideoPage = () => {
           </div>
         </div>
       )}
+
+      <Modal
+        isOpen={Boolean(mediaPermissionError)}
+        onClose={() => setMediaPermissionError('')}
+        title="Kamera yoki mikrofon bloklangan"
+        description="Video qo'ng'iroq boshlanishi uchun brauzer kameraga va mikrofonga ruxsat olishi kerak."
+        footer={(
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setMediaPermissionError('')}
+            >
+              Yopish
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setMediaPermissionError('');
+                window.location.reload();
+              }}
+            >
+              Qayta urinish
+            </Button>
+          </>
+        )}
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-300">
+              <ShieldAlert className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-amber-100">{mediaPermissionError}</p>
+              <p className="mt-2 text-sm text-slate-400">
+                Chrome manzil satri yonidagi kamera belgisi orqali ruxsatni `Allow` qiling. Keyin yana callni boshlang.
+              </p>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

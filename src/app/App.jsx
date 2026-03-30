@@ -1,33 +1,34 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { Suspense, lazy, useEffect, useState, useCallback } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Phone, PhoneOff } from 'lucide-react';
+import { Loader2, Phone, PhoneOff } from 'lucide-react';
 import { ToastProvider } from '@/shared/ui/providers/ToastProvider';
 import { Header } from '@/shared/ui/organisms/Header';
 import { BottomNav } from '@/shared/ui/organisms/BottomNav';
+import { PwaInstallPrompt } from '@/shared/ui/organisms/PwaInstallPrompt';
 import { Sidebar } from '@/shared/ui/organisms/Sidebar';
 import { hasActiveSession } from '@/shared/lib/auth';
 import { chatService } from '@/shared/api';
 import { useAuthStore } from '@/entities/user/model/store';
 import { useNotificationStore } from '@/entities/notification/model/store';
 
-import { LandingPage } from '@/pages/home/LandingPage';
-import { LoginPage } from '@/pages/auth/LoginPage';
-import { RegisterPage } from '@/pages/auth/RegisterPage';
-import { PasswordResetConfirmPage } from '@/pages/auth/PasswordResetConfirmPage';
-import { DashboardPage } from '@/pages/dashboard/DashboardPage';
-import { ChatPage } from '@/pages/chat/ChatPage';
-import { VideoPage } from '@/pages/video/VideoPage';
-import { JobsPage } from '@/pages/jobs/JobsPage';
-import { JobDetailPage } from '@/pages/jobs/JobDetailPage';
-import { BarterPage } from '@/pages/barter/BarterPage';
-import { NotificationsPage } from '@/pages/notifications/NotificationsPage';
-import { ProfilePage } from '@/pages/profile/ProfilePage';
-import { WalletPage } from '@/pages/wallet/WalletPage';
-import { ContractsPage } from '@/pages/contracts/ContractsPage';
-import { DisputesPage } from '@/pages/disputes/DisputesPage';
-import { SearchPage } from '@/pages/search/SearchPage';
-import { SubscriptionsPage } from '@/pages/subscriptions/SubscriptionsPage';
+const LandingPage = lazy(() => import('@/pages/home/LandingPage'));
+const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage'));
+const PasswordResetConfirmPage = lazy(() => import('@/pages/auth/PasswordResetConfirmPage'));
+const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
+const ChatPage = lazy(() => import('@/pages/chat/ChatPage'));
+const VideoPage = lazy(() => import('@/pages/video/VideoPage'));
+const JobsPage = lazy(() => import('@/pages/jobs/JobsPage'));
+const JobDetailPage = lazy(() => import('@/pages/jobs/JobDetailPage'));
+const BarterPage = lazy(() => import('@/pages/barter/BarterPage'));
+const NotificationsPage = lazy(() => import('@/pages/notifications/NotificationsPage'));
+const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
+const WalletPage = lazy(() => import('@/pages/wallet/WalletPage'));
+const ContractsPage = lazy(() => import('@/pages/contracts/ContractsPage'));
+const DisputesPage = lazy(() => import('@/pages/disputes/DisputesPage'));
+const SearchPage = lazy(() => import('@/pages/search/SearchPage'));
+const SubscriptionsPage = lazy(() => import('@/pages/subscriptions/SubscriptionsPage'));
 
 // Simple auth check
 const isAuthenticated = () => {
@@ -61,6 +62,34 @@ const PageTransition = ({ children }) => (
   >
     {children}
   </motion.div>
+);
+
+const RouteLoader = ({ fullScreen = false }) => (
+  <div
+    className={[
+      fullScreen ? 'min-h-screen' : 'min-h-[50vh]',
+      'flex items-center justify-center px-6',
+    ].join(' ')}
+  >
+    <div className="glass-card w-full max-w-md p-6 text-center">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10">
+        <Loader2 className="h-6 w-6 animate-spin text-emerald-400" />
+      </div>
+      <p className="mt-4 text-sm font-semibold uppercase tracking-[0.24em] text-emerald-400">
+        SkillSwap AI
+      </p>
+      <h2 className="mt-2 text-xl font-bold text-white">Sahifa yuklanmoqda</h2>
+      <p className="mt-2 text-sm text-slate-400">
+        Production build endi route bo&apos;yicha bo&apos;linadi, shuning uchun kerakli sahifa alohida yuklanadi.
+      </p>
+    </div>
+  </div>
+);
+
+const LazyRoute = ({ children, fullScreen = false }) => (
+  <Suspense fallback={<RouteLoader fullScreen={fullScreen} />}>
+    {children}
+  </Suspense>
 );
 
 // Layout for authenticated pages
@@ -253,36 +282,61 @@ const AppLayout = ({ children }) => {
   );
 };
 
+const renderPublicPage = (PageComponent, { guarded = false } = {}) => {
+  const page = (
+    <LazyRoute fullScreen>
+      <PageComponent />
+    </LazyRoute>
+  );
+
+  if (guarded) {
+    return <PublicRoute>{page}</PublicRoute>;
+  }
+
+  return page;
+};
+
+const renderProtectedPage = (PageComponent) => (
+  <ProtectedRoute>
+    <AppLayout>
+      <LazyRoute>
+        <PageComponent />
+      </LazyRoute>
+    </AppLayout>
+  </ProtectedRoute>
+);
+
 export const App = () => {
   return (
     <ToastProvider>
       <Routes>
         {/* Public routes */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-        <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
-        <Route path="/password/reset/confirm/:uid/:token" element={<PasswordResetConfirmPage />} />
+        <Route path="/" element={renderPublicPage(LandingPage)} />
+        <Route path="/login" element={renderPublicPage(LoginPage, { guarded: true })} />
+        <Route path="/register" element={renderPublicPage(RegisterPage, { guarded: true })} />
+        <Route path="/password/reset/confirm/:uid/:token" element={renderPublicPage(PasswordResetConfirmPage)} />
 
         {/* Protected routes */}
-        <Route path="/dashboard" element={<ProtectedRoute><AppLayout><DashboardPage /></AppLayout></ProtectedRoute>} />
-        <Route path="/jobs" element={<ProtectedRoute><AppLayout><JobsPage /></AppLayout></ProtectedRoute>} />
-        <Route path="/jobs/:id" element={<ProtectedRoute><AppLayout><JobDetailPage /></AppLayout></ProtectedRoute>} />
-        <Route path="/barter" element={<ProtectedRoute><AppLayout><BarterPage /></AppLayout></ProtectedRoute>} />
-        <Route path="/chat" element={<ProtectedRoute><AppLayout><ChatPage /></AppLayout></ProtectedRoute>} />
-        <Route path="/chat/:roomId" element={<ProtectedRoute><AppLayout><ChatPage /></AppLayout></ProtectedRoute>} />
-        <Route path="/video" element={<ProtectedRoute><AppLayout><VideoPage /></AppLayout></ProtectedRoute>} />
-        <Route path="/notifications" element={<ProtectedRoute><AppLayout><NotificationsPage /></AppLayout></ProtectedRoute>} />
-        <Route path="/profile/:id" element={<ProtectedRoute><AppLayout><ProfilePage /></AppLayout></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><AppLayout><ProfilePage /></AppLayout></ProtectedRoute>} />
-        <Route path="/wallet" element={<ProtectedRoute><AppLayout><WalletPage /></AppLayout></ProtectedRoute>} />
-        <Route path="/contracts" element={<ProtectedRoute><AppLayout><ContractsPage /></AppLayout></ProtectedRoute>} />
-        <Route path="/disputes" element={<ProtectedRoute><AppLayout><DisputesPage /></AppLayout></ProtectedRoute>} />
-        <Route path="/search" element={<ProtectedRoute><AppLayout><SearchPage /></AppLayout></ProtectedRoute>} />
-        <Route path="/subscriptions" element={<ProtectedRoute><AppLayout><SubscriptionsPage /></AppLayout></ProtectedRoute>} />
+        <Route path="/dashboard" element={renderProtectedPage(DashboardPage)} />
+        <Route path="/jobs" element={renderProtectedPage(JobsPage)} />
+        <Route path="/jobs/:id" element={renderProtectedPage(JobDetailPage)} />
+        <Route path="/barter" element={renderProtectedPage(BarterPage)} />
+        <Route path="/chat" element={renderProtectedPage(ChatPage)} />
+        <Route path="/chat/:roomId" element={renderProtectedPage(ChatPage)} />
+        <Route path="/video" element={renderProtectedPage(VideoPage)} />
+        <Route path="/notifications" element={renderProtectedPage(NotificationsPage)} />
+        <Route path="/profile/:id" element={renderProtectedPage(ProfilePage)} />
+        <Route path="/profile" element={renderProtectedPage(ProfilePage)} />
+        <Route path="/wallet" element={renderProtectedPage(WalletPage)} />
+        <Route path="/contracts" element={renderProtectedPage(ContractsPage)} />
+        <Route path="/disputes" element={renderProtectedPage(DisputesPage)} />
+        <Route path="/search" element={renderProtectedPage(SearchPage)} />
+        <Route path="/subscriptions" element={renderProtectedPage(SubscriptionsPage)} />
 
         {/* Fallback routes */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <PwaInstallPrompt />
     </ToastProvider>
   );
 };
