@@ -1,5 +1,5 @@
-const STATIC_CACHE = 'skillswap-static-v1';
-const RUNTIME_CACHE = 'skillswap-runtime-v1';
+const STATIC_CACHE = 'skillswap-static-v3';
+const RUNTIME_CACHE = 'skillswap-runtime-v3';
 const APP_SHELL = [
   '/',
   '/offline.html',
