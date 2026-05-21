@@ -7,14 +7,6 @@ const buildMentorshipPayload = (data = {}) => ({
   proposed_schedule: data.proposed_schedule,
 });
 
-const buildSyntheticResponse = (data, status = 200) => ({
-  data,
-  status,
-  statusText: status === 204 ? 'No Content' : 'OK',
-  headers: {},
-  config: {},
-});
-
 const postToFirstAvailable = async (paths, payload) => {
   let lastError = null;
 
@@ -33,17 +25,7 @@ const postToFirstAvailable = async (paths, payload) => {
   throw lastError || new Error('No compatible endpoint found');
 };
 
-const deleteMentorshipWithStatus = async (id, data = {}, status = 'REJECTED') => {
-  await api.delete(`/barter/mentorship/${id}/`);
-  return buildSyntheticResponse({ ...data, id, status }, 204);
-};
-
-const deleteSessionWithStatus = async (id, data = {}, status = 'CANCELLED') => {
-  await api.delete(`/barter/sessions/${id}/`);
-  return buildSyntheticResponse({ ...data, id, status }, 204);
-};
-
-const postSessionAction = async (id, paths, data = {}) =>
+const postSessionAction = async (paths, data = {}) =>
   postToFirstAvailable(
     Array.isArray(paths) ? paths : [paths],
     data && typeof data === 'object' ? data : {}
@@ -59,65 +41,29 @@ const barterService = {
       [`/barter/mentorship/${id}/accept/`],
       buildMentorshipPayload(data)
     ),
-  rejectMentorship: async (id, data = {}) => {
-    const payload = buildMentorshipPayload(data);
-
-    try {
-      return await postToFirstAvailable(
-        [
-          `/barter/mentorship/${id}/reject/`,
-          `/barter/mentorship/${id}/cancel/`,
-        ],
-        payload
-      );
-    } catch (error) {
-      const status = error.response?.status;
-      if (status && ![404, 405].includes(status)) {
-        throw error;
-      }
-
-      return deleteMentorshipWithStatus(id, data, 'REJECTED');
-    }
-  },
+  rejectMentorship: (id, data = {}) =>
+    postToFirstAvailable(
+      [
+        `/barter/mentorship/${id}/reject/`,
+        `/barter/mentorship/${id}/cancel/`,
+      ],
+      buildMentorshipPayload(data)
+    ),
   negotiateMentorship: (id, data) =>
     postToFirstAvailable(
       [`/barter/mentorship/${id}/negotiate/`],
       buildMentorshipPayload(data)
     ),
-  completeMentorship: async (id, data = {}) => {
-    const payload = buildMentorshipPayload(data);
-
-    try {
-      return await postToFirstAvailable(
-        [`/barter/mentorship/${id}/complete/`],
-        payload
-      );
-    } catch (error) {
-      const status = error.response?.status;
-      if (status && ![404, 405].includes(status)) {
-        throw error;
-      }
-
-      return deleteMentorshipWithStatus(id, data, 'COMPLETED');
-    }
-  },
-  cancelMentorship: async (id, data = {}) => {
-    const payload = buildMentorshipPayload(data);
-
-    try {
-      return await postToFirstAvailable(
-        [`/barter/mentorship/${id}/cancel/`],
-        payload
-      );
-    } catch (error) {
-      const status = error.response?.status;
-      if (status && ![404, 405].includes(status)) {
-        throw error;
-      }
-
-      return deleteMentorshipWithStatus(id, data, 'CANCELLED');
-    }
-  },
+  completeMentorship: (id, data = {}) =>
+    postToFirstAvailable(
+      [`/barter/mentorship/${id}/complete/`],
+      buildMentorshipPayload(data)
+    ),
+  cancelMentorship: (id, data = {}) =>
+    postToFirstAvailable(
+      [`/barter/mentorship/${id}/cancel/`],
+      buildMentorshipPayload(data)
+    ),
 
   // Sessions — /barter/sessions/
   getSessions: (params) => api.get('/barter/sessions/', { params }),
@@ -125,49 +71,24 @@ const barterService = {
   createSession: (data) => api.post('/barter/sessions/', data),
   confirmSession: (id, data = {}) =>
     postSessionAction(
-      id,
-      [
-        `/barter/sessions/${id}/confirm_session/`,
-        `/barter/sessions/${id}/confirm/`,
-      ],
+      `/barter/sessions/${id}/confirm_session/`,
       data
     ),
   startSession: (id, data = {}) =>
     postSessionAction(
-      id,
-      [
-        `/barter/sessions/${id}/start_session/`,
-        `/barter/sessions/${id}/start/`,
-      ],
+      `/barter/sessions/${id}/start_session/`,
       data
     ),
   completeSession: (id, data = {}) =>
     postSessionAction(
-      id,
-      [
-        `/barter/sessions/${id}/complete_session/`,
-        `/barter/sessions/${id}/complete/`,
-      ],
+      `/barter/sessions/${id}/complete_session/`,
       data
     ),
   cancelSession: async (id, data = {}) => {
-    try {
-      return await postSessionAction(
-        id,
-        [
-          `/barter/sessions/${id}/cancel_session/`,
-          `/barter/sessions/${id}/cancel/`,
-        ],
-        data
-      );
-    } catch (error) {
-      const status = error.response?.status;
-      if (status && ![404, 405].includes(status)) {
-        throw error;
-      }
-
-      return deleteSessionWithStatus(id, data, 'CANCELLED');
-    }
+    return postSessionAction(
+      `/barter/sessions/${id}/cancel_session/`,
+      data
+    );
   },
 
   // AI Matchmaking — /barter/sessions/matchmaking/

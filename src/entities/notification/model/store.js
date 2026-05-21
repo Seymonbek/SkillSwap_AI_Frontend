@@ -118,16 +118,17 @@ export const useNotificationStore = create((set, get) => ({
           const data = JSON.parse(event.data);
 
           if (data.type === 'notification' || data.type === 'new_notification') {
+            const notification = data.payload || data.data || data;
             get().addNotification({
-              id: data.id || Date.now(),
-              title: data.title || data.message,
-              message: data.message || data.body,
-              notification_type: data.notification_type || 'SYSTEM',
-              action_url: data.action_url || data.link || null,
-              entity_type: data.entity_type || null,
-              entity_id: data.entity_id || null,
-              is_read: false,
-              created_at: data.created_at || new Date().toISOString(),
+              id: notification.id || Date.now(),
+              title: notification.title || notification.message,
+              message: notification.message || notification.body,
+              notification_type: notification.notification_type || 'SYSTEM',
+              action_url: notification.action_url || notification.link || null,
+              entity_type: notification.entity_type || null,
+              entity_id: notification.entity_id || null,
+              is_read: Boolean(notification.is_read),
+              created_at: notification.created_at || new Date().toISOString(),
             });
           } else if (data.type === 'unread_count') {
             set({ unreadCount: data.count || 0 });

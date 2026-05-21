@@ -3,7 +3,7 @@ import { clearStoredAuth, isTokenValid, redirectToLogin } from '@/shared/lib/aut
 
 const trimTrailingSlash = (value = '') => value.replace(/\/+$/, '');
 
-const DEFAULT_DEV_API_URL = 'http://13.50.109.251:8000/api/v1';
+const DEFAULT_DEV_API_URL = 'http://127.0.0.1:8000/api/v1';
 
 const API_BASE_URL = trimTrailingSlash(
   import.meta.env.VITE_API_URL || (import.meta.env.DEV ? DEFAULT_DEV_API_URL : '/api/v1')

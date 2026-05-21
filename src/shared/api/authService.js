@@ -5,6 +5,7 @@ const authService = {
   login: (data) => api.post('/auth/jwt/create/', data),
   refreshToken: (data) => api.post('/auth/jwt/refresh/', data),
   verifyToken: (data) => api.post('/auth/jwt/verify/', data),
+  logout: (data) => api.post('/auth/logout/', data),
 
   // Users
   createUser: (data) => api.post('/auth/users/', data),

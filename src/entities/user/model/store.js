@@ -97,9 +97,19 @@ export const useAuthStore = create((set, get) => {
     }
   },
 
-  logout: () => {
-    clearStoredAuth();
-    set({ user: null, isAuthenticated: false, error: null, wallet: null, kycStatus: null });
+  logout: async () => {
+    const refreshToken = localStorage.getItem('refresh_token');
+
+    try {
+      if (refreshToken) {
+        await authService.logout({ refresh: refreshToken });
+      }
+    } catch {
+      // Local logout should still complete if the token is already expired or blacklisted.
+    } finally {
+      clearStoredAuth();
+      set({ user: null, isAuthenticated: false, error: null, wallet: null, kycStatus: null });
+    }
   },
 
   fetchCurrentUser: async () => {

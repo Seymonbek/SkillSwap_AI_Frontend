@@ -64,8 +64,8 @@ http://localhost:5173
 Create `.env.development.local` for local work, or `.env.production` for deployment.
 
 ```bash
-VITE_API_URL=http://13.50.109.251:8000/api/v1
-VITE_WS_URL=ws://13.50.109.251:8000
+VITE_API_URL=http://127.0.0.1:8000/api/v1
+VITE_WS_URL=ws://127.0.0.1:8000
 VITE_DEBUG_WS=false
 VITE_DEBUG_RTC=false
 ```

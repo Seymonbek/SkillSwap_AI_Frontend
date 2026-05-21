@@ -48,34 +48,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
-            if (!id.includes('node_modules')) {
-              return undefined
-            }
-
-            if (
-              id.includes('node_modules/react/') ||
-              id.includes('node_modules/react-dom/') ||
-              id.includes('node_modules/react-router-dom/')
-            ) {
-              return 'react-vendor'
-            }
-
-            if (
-              id.includes('node_modules/axios/') ||
-              id.includes('node_modules/zustand/')
-            ) {
-              return 'data-vendor'
-            }
-
-            if (id.includes('node_modules/framer-motion/')) {
-              return 'motion-vendor'
-            }
-
-            if (id.includes('node_modules/lucide-react/')) {
-              return 'icon-vendor'
-            }
-
-            return 'vendor'
+            return id.includes('node_modules') ? 'vendor' : undefined
           },
         },
       },

@@ -111,8 +111,9 @@ export const useChatStore = create((set, get) => ({
             break;
 
           case 'online_status':
+          case 'status':
             set((state) => ({
-              onlineUsers: data.is_online
+              onlineUsers: (data.is_online ?? data.status === 'online')
                 ? [...new Set([...state.onlineUsers, data.user_id])]
                 : state.onlineUsers.filter((id) => id !== data.user_id),
             }));
